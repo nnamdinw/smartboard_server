@@ -113,7 +113,6 @@ void displayCalStatus(void)
 /**************************************************************************/
 void setup(void)
 {
-  Serial.begin(9600);
   printf("Orientation Sensor Test"); printf("");
 
   /* Initialise the sensor */
