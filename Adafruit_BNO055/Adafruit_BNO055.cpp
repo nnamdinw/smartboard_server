@@ -43,8 +43,9 @@
  *  @param  *theWire
  *          Wire object
  */
-Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address,
-                                 TwoWire *theWire) {
+Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address) {
+  
+  setFd(wiringPiI2CSetup(BNO055_ADDRESS_A));
   _sensorID = sensorID;
   _address = address;
 }
@@ -708,7 +709,14 @@ unsigned char Adafruit_BNO055::read8(adafruit_bno055_reg_t reg) {
   data = wiringPiI2CReadReg8(getFd(),regAddr);
   return data; 
 }
-
+void Adafruit_BNO055::setFd(int a)
+{
+  i2cfd = a;
+}
+int Adafruit_BNO055::getFd()
+{
+  return i2cfd;
+}
 /*!
  *  @brief  Reads the specified number of unsigned chars over I2C
  */

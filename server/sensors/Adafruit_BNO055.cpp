@@ -27,8 +27,6 @@
  *  MIT license, all text above must be included in any redistribution
  */
 
-#include "Arduino.h"
-
 #include <limits.h>
 #include <math.h>
 
@@ -43,8 +41,9 @@
  *  @param  *theWire
  *          Wire object
  */
-Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address,
-                                 TwoWire *theWire) {
+Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address) {
+  
+  setFd(wiringPiI2CSetup(BNO055_ADDRESS_A));
   _sensorID = sensorID;
   _address = address;
 }
@@ -69,20 +68,6 @@ Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address,
  *  @return true if process is successful
  */
 bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode) {
-#if defined(ARDUINO_SAMD_ZERO) && (_address == BNO055_ADDRESS_A)
-#error                                                                         \
-    "On an arduino Zero, BNO055's ADR pin must be high. Fix that, then delete this line."
-  _address = BNO055_ADDRESS_B;
-#endif
-
-  /* Enable I2C */
-  _wire->begin();
-
-  // BNO055 clock stretches for 500us or more!
-#ifdef ESP8266
-  _wire->setClockStretchLimit(1000); // Allow for 1000us of clock stretching
-#endif
-
   /* Make sure we have the right device */
   uint8_t id = read8(BNO055_CHIP_ID_ADDR);
   if (id != BNO055_ID) {
@@ -214,9 +199,9 @@ void Adafruit_BNO055::setAxisSign(adafruit_bno055_axis_remap_sign_t remapsign) {
 /*!
  *  @brief  Use the external 32.768KHz crystal
  *  @param  usextal
- *          use external crystal boolean
+ *          use external crystal bool
  */
-void Adafruit_BNO055::setExtCrystalUse(boolean usextal) {
+void Adafruit_BNO055::setExtCrystalUse(bool usextal) {
   adafruit_bno055_opmode_t modeback = _mode;
 
   /* Switch to config mode (just in case since this is the default) */
@@ -705,10 +690,17 @@ bool Adafruit_BNO055::write8(adafruit_bno055_reg_t reg, unsigned char value) {
  */
 unsigned char Adafruit_BNO055::read8(adafruit_bno055_reg_t reg) {
   unsigned char data;
-  data = wiringPiI2CReadReg8(getFd(),regAddr);
+  data = wiringPiI2CReadReg8(getFd(),reg);
   return data; 
 }
-
+void Adafruit_BNO055::setFd(int a)
+{
+  i2cfd = a;
+}
+int Adafruit_BNO055::getFd()
+{
+  return i2cfd;
+}
 /*!
  *  @brief  Reads the specified number of unsigned chars over I2C
  */

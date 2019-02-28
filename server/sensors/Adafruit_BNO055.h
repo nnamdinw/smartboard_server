@@ -285,15 +285,14 @@ public:
     VECTOR_GRAVITY = BNO055_GRAVITY_DATA_X_LSB_ADDR
   } adafruit_vector_type_t;
 
-  Adafruit_BNO055(int32_t sensorID = -1, uint8_t address = BNO055_ADDRESS_A,
-                  TwoWire *theWire = &Wire);
+  Adafruit_BNO055(int32_t sensorID = -1, uint8_t address = BNO055_ADDRESS_A);
 
   bool begin(adafruit_bno055_opmode_t mode = OPERATION_MODE_NDOF);
   void setMode(adafruit_bno055_opmode_t mode);
   void setAxisRemap(adafruit_bno055_axis_remap_config_t remapcode);
   void setAxisSign(adafruit_bno055_axis_remap_sign_t remapsign);
   void getRevInfo(adafruit_bno055_rev_info_t *);
-  void setExtCrystalUse(boolean usextal);
+  void setExtCrystalUse(bool usextal);
   void getSystemStatus(uint8_t *system_status, uint8_t *self_test_result,
                        uint8_t *system_error);
   void getCalibration(uint8_t *system, uint8_t *gyro, uint8_t *accel,
@@ -318,8 +317,10 @@ private:
   unsigned char read8(adafruit_bno055_reg_t);
   bool readLen(adafruit_bno055_reg_t, unsigned char *buffer, uint8_t len);
   bool write8(adafruit_bno055_reg_t, unsigned char value);
-
+  int getFd();
+  void setFd(int);
   uint8_t _address;
+  int i2cfd;
   //TwoWire *_wire;
 
   int32_t _sensorID;

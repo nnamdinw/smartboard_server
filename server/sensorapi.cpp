@@ -1,7 +1,8 @@
 
-#include "Adafruit_Sensor.h"
-#include "Adafruit_BNO055.h"
-#include "utility/imumaths.h"
+#include "sensors/Adafruit_Sensor.h"
+#include "sensors/Adafruit_BNO055.h"
+#include "sensors/utility/imumaths.h"
+#include <cstdio>
 
 /* This driver uses the Adafruit unified sensor library (Adafruit_Sensor),
    which provides a common 'type' for sensor data and some helper functions.
@@ -48,8 +49,8 @@ void displaySensorDetails(void)
   printf  ("Driver Ver:   %d\n",sensor.version);
   printf  ("Unique ID:    %d\n",sensor.sensor_id);
   printf  ("Max Value:    %d\n",sensor.max_value);
-  printf  ("Min Value:    %d\n"),sensor.min_value);
-  printf  ("Resolution:   ",sensor.resolution);
+  printf  ("Min Value:    %d\n",sensor.min_value);
+  printf  ("Resolution:   %d",sensor.resolution);
   printf("------------------------------------\n");
   printf("");
   delay(500);
@@ -98,10 +99,10 @@ void displayCalStatus(void)
   }
   //TODO: Remove Arduino Specifc lines and classify this file. 
   /* Display the individual values */
-  printf("Sys:%d",system);
-  printf(" G:%d",gyr);
-  printf(" A:%d",accel);
-  printf(" M:%d",mag);
+  printf("Sys:%d\n",system);
+  printf(" G:%d\n",gyro);
+  printf(" A:%d\n",accel);
+  printf(" M:%d\n",mag);
 }
 
 /**************************************************************************/
@@ -145,22 +146,28 @@ void loop()
   bno.getEvent(&event);
 
   /* Display the floating point data */
-  printf("X: ");
-  printf(event.orientation.x, 4);
-  printf("\tY: ");
-  printf(event.orientation.y, 4);
-  printf("\tZ: ");
-  printf(event.orientation.z, 4);
+  printf("%3.2f,",event.orientation.x);
+  printf(" %3.2f,",event.orientation.y);
+  printf(" %3.2f\n",event.orientation.z);
 
   /* Optional: Display calibration status */
-  displayCalStatus();
+  //displayCalStatus();
 
   /* Optional: Display sensor status (debug only) */
   //displaySensorStatus();
 
   /* New line for the next sample */
-  printf("\n");
+  //printf("\n");
 
   /* Wait the specified delay before requesting nex data */
   delay(BNO055_SAMPLERATE_DELAY_MS);
+}
+
+int main()
+{
+  setup();
+  while(true)
+  {
+    loop();
+  }
 }
