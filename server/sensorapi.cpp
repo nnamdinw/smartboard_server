@@ -2,37 +2,43 @@
 #include "sensors/Adafruit_Sensor.h"
 #include "sensors/Adafruit_BNO055.h"
 #include "sensors/utility/imumaths.h"
+#include "sensors/DRV2605.h"
+#include "sensors/mux_drv2605.h"
 #include <cstdio>
-
-/* This driver uses the Adafruit unified sensor library (Adafruit_Sensor),
-   which provides a common 'type' for sensor data and some helper functions.
-
-   To use this driver you will also need to download the Adafruit_Sensor
-   library and include it in your libraries folder.
-
-   You should also assign a unique ID to this sensor for use with
-   the Adafruit Sensor API so that you can identify this particular
-   sensor in any data logs, etc.  To assign a unique ID, simply
-   provide an appropriate value in the constructor below (12345
-   is used by default in this example).
-
-   Connections
-   ===========
-   Connect SCL to analog 5
-   Connect SDA to analog 4
-   Connect VDD to 3-5V DC
-   Connect GROUND to common ground
-
-   History
-   =======
-   2015/MAR/03  - First release (KTOWN)
-   2015/AUG/27  - Added calibration and system status helpers
-*/
+#include <cstdlib>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/strand.hpp>
+#include <boost/asio/deadline_timer.hpp>
+#include <fstream>
+#include <amqpcpp.h>
+#include <amqpcpp/libboostasio.h>
+#include <amqpcpp/linux_tcp.h>
+#include <mutex>
+#include <vector>
+#include <string>
+#include <thread>
+std::mutex mtx;
+std::thread threads[2];
 
 /* Set the delay between fresh samples */
 #define BNO055_SAMPLERATE_DELAY_MS (100)
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
+
+struct skate_config
+{
+  std::string mq_server;
+  std::string mq_user;
+  std::string mq_password;
+  std::string mq_exchange;
+  std::string mq_routingkey;
+  std::string mq_queueName;
+  std::string configVersion;
+  std::string vhostName;
+  std::string heartbeat;
+}s_c;
+
+int server_time;
 
 /**************************************************************************/
 /*
@@ -40,6 +46,102 @@ Adafruit_BNO055 bno = Adafruit_BNO055(55);
     sensor API sensor_t type (see Adafruit_Sensor for more information)
 */
 /**************************************************************************/
+
+
+void buzz(int index)
+{
+  DRV2605 hap;
+  mux_drv2605 mux;
+  mux.addEntry(1);
+  mux.addEntry(2);
+
+
+  //setup
+  mux.set(1);
+  hap.begin();
+  hap.selectLibrary(1);
+  hap.setMode(DRV2605_MODE_INTTRIG);
+
+  mux.set(2);
+  hap.begin();
+  hap.selectLibrary(1);
+  hap.setMode(DRV2605_MODE_INTTRIG);
+    //wiringPiSetup();
+
+  uint8_t effect = 1;
+  mux.set(index);
+//    effect = 12;
+  hap.setWaveform(0,effect);
+  hap.setWaveform(1,0);
+  hap.go();
+  delay(100);
+}
+void getConfig(std::string name)
+{
+  //checks immediate dir for config file
+  //Config file is Newline delimieted text file with the following lines
+  /*  
+
+
+      1- rabbitmqurl
+      2- rabbitmq username
+      3- rabbitmq password
+      4- rabbitmq routing-key
+      5- rabbitmq exchangeName
+      6- rabbitmq queueName
+      7- piConfig? (haptics or not, build id)
+  */
+
+  std::ifstream in (name);
+  std::string temp = "";
+  std::vector<std::string> output;
+  char delim = '\n';
+  int fileLen = 0;
+  in.seekg(0,in.end);
+  fileLen = in.tellg();
+  in.seekg(0,in.beg);
+
+
+  if(fileLen != 0)
+  {
+
+    while(std::getline(in,temp,delim))
+    {
+      output.push_back(temp);
+    }
+
+      if(output.size() == 9)
+      {
+        s_c.mq_server = output[0];
+        s_c.mq_user = output[1];
+        s_c.mq_password = output[2];
+        s_c.mq_routingkey = output[3];
+        s_c.mq_exchange = output[4];
+        s_c.mq_queueName = output[5];
+        s_c.configVersion = output[6];
+        s_c.vhostName = output[7];
+        s_c.heartbeat = output[8];
+        std::cout << "\nConfig Parse Succesfull" << std::endl;
+
+      }
+      else
+      {
+        std::cout << "\nConfig Parse Unsuccesfull" << std::endl << "Too few newlines, need 6 received " << output.size() <<  std::endl << 
+        " File size of " << fileLen << std::endl;
+        exit(-1);
+
+      }
+
+  
+  }
+  else
+  {
+    std::cout << "\nError: Could not open file at " << name << std::endl;
+  }
+  return;
+
+}
+
 void displaySensorDetails(void)
 {
   sensor_t sensor;
@@ -110,6 +212,41 @@ void displayCalStatus(void)
     Arduino setup function (automatically called at startup)
 */
 /**************************************************************************/
+void sensorPoll(int config,bool * flag)
+{
+  std::cout << "\nStarting Polling Loop...\n";
+  std::string temp = "";
+  sensors_event_t event;
+//  Adafruit_BNO055 bno = Adafruit_BNO055(55);
+
+  std::vector<std::string> output;
+  switch(config)    
+    {
+
+      case 1:
+          while(*flag)
+          {
+          bno.getEvent(&event);
+          temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
+          output.push_back(temp);
+          delay(BNO055_SAMPLERATE_DELAY_MS);
+          }
+
+          break;
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+            std::cout << "\nUniplimented";
+            break;
+      case 7:
+            //update log struct in memory
+            //write output vector to disk
+            break;
+    }
+}
+
 void setup()
 {
   printf("Orientation Sensor Test\n");
@@ -139,35 +276,204 @@ void setup()
     should go here)
 */
 /**************************************************************************/
-void loop()
+void messageParse(std::string msg)
 {
-  /* Get a new sensor event */
-  sensors_event_t event;
-  bno.getEvent(&event);
+  size_t pos = 0;
+  int configParam = 0;
+  bool* messageFlag = NULL;
+  /*
+      Pi_Control,Start_Poll/Stop_Poll/No_Poll,Config Preset,[Optional Input]
+  */
+  pos = msg.find("Pi_Control");
+  if(pos != std::string::npos)
+  { 
+    if(msg.find("Start_Poll") != std::string::npos)
+    { 
+      *messageFlag = true;
+      if((pos = msg.find("Config:")) != std::string::npos)
+      {
 
-  /* Display the floating point data */
-  printf("%3.2f,",event.orientation.x);
-  printf(" %3.2f,",event.orientation.y);
-  printf(" %3.2f\n",event.orientation.z);
+          std::string temp = msg.substr(pos,pos+1);
+          configParam = atoi(temp.c_str());
+          std::cout << "\nStarting sensor poll...\n"; 
+         // threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
-  /* Optional: Display calibration status */
-  //displayCalStatus();
+      }
+    }
+    else if (msg.find("Stop_Poll") != std::string::npos)
+    {
+      *messageFlag = false;
+      std::cout << "\nPoll Stopping..\n";
+//      threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
-  /* Optional: Display sensor status (debug only) */
-  //displaySensorStatus();
+    }
+    else if(msg.find("No_Poll") != std::string::npos)
+    {
 
-  /* New line for the next sample */
-  //printf("\n");
 
-  /* Wait the specified delay before requesting nex data */
-  delay(BNO055_SAMPLERATE_DELAY_MS);
+      if((pos = msg.find("Config:")) != std::string::npos)
+      {
+
+          std::string temp = msg.substr(pos,pos+1);
+          configParam = atoi(temp.c_str());
+
+      }
+      if((pos = msg.find("Optional_Param")) != std::string::npos)
+      {
+
+
+
+      }
+    }
+    else if (msg.find("buzz 0") != std::string::npos)
+    {
+      buzz(0);
+    }
+    else if (msg.find("buzz 1") != std::string::npos)
+    {
+      buzz(1);
+    }
+
+
+  }
+  return;
 }
+
+
+
+
+int mqLoop(int choice)
+{
+
+  /*
+  std::string exchangeName = "skate_exchange";
+  std::string queueName = "command_queue";
+  std::string routingkey = "piAlpha";
+  std::string amqp_connection_string = "amqp://piAlpha:258654as@192.168.1.109/";
+*/
+  /*  
+
+
+      1- rabbitmqurl
+      2- rabbitmq username
+      3- rabbitmq password
+      4- rabbitmq routing-key
+      5- rabbitmq exchangeName
+      6- rabbitmq queueName
+      7- piConfig? (haptics or not, build id)
+      8- vhost
+      9- heartbeat refresh in ms
+  */  std::cout << "\t\t Init RabbitMq Interface\t\t\n";
+  int heartbeat = 0;
+  std::string exchangeName = s_c.mq_exchange;
+  std::string queueName = s_c.mq_queueName;
+  std::string routingkey = s_c.mq_routingkey;
+  std::string amqp_connection_string = "amqp://" + s_c.mq_user + ":" + s_c.mq_password + "@" + s_c.mq_server + "/" + s_c.vhostName;
+  heartbeat = atoi(s_c.heartbeat.c_str());
+  bool isLive = true;
+  std::vector<std::string> output;
+  std::string temp;
+  boost::asio::io_service service(2);
+    // handler for libev
+  AMQP::LibBoostAsioHandler handler(service);
+  AMQP::TcpConnection connection(&handler, AMQP::Address(amqp_connection_string));
+   std::cout << "FD: " <<  connection.fileno() << std::endl;
+    // we need a channel too
+  AMQP::TcpChannel channel(&connection);
+  channel.declareExchange(exchangeName, AMQP::fanout);
+  channel.declareQueue(queueName);
+  channel.bindQueue(exchangeName, queueName,routingkey);
+
+  std::cout << "- Connection String: " << amqp_connection_string << std::endl;
+  std::cout << "- Routing Key: " << routingkey << std::endl;
+  std::cout << "- Queue Name: " << queueName << std::endl;
+
+  switch(choice)
+  {
+
+
+    case 1:
+    if(time(NULL) > server_time + heartbeat)
+    {
+    server_time = time(NULL);
+    channel.publish(exchangeName,routingkey,"Hi");
+    channel.commitTransaction();
+    //connection.close();
+    }
+ 
+    break;
+
+    // create a temporary queue
+    /*
+    channel.declareQueue(AMQP::exclusive).onSuccess([&connection](const std::string &name, uint32_t messagecount, uint32_t consumercount) {
+        
+        // report the name of the temporary queue
+        std::cout << "declared queue " << name << std::endl;
+        
+        // now we can close the connection
+        connection.close();
+    });
+    */
+    case 2:
+  auto startCb = [](const std::string &consumertag) 
+  {
+
+    std::cout << "consume operation started" << std::endl;  
+  };
+
+// callback function that is called when the consume operation failed
+  auto errorCb = [](const char *message) 
+  {
+
+      std::cout << "consume operation failed with error " << std::string(message) << std::endl;
+  };
+
+// callback operation when a message was received
+  auto messageCb = [&channel](const AMQP::Message &message, uint64_t deliveryTag, bool redelivered) 
+  {
+
+      std::cout << "message received" << ": " << message.body() << std::endl;
+      //Parse Message
+      channel.ack(deliveryTag);
+
+     // std::cout << (std::string)message.body();
+      messageParse(std::string(message.body()));
+      // acknowledge the message
+  };
+
+    channel.consume(queueName)
+    .onReceived(messageCb)
+    .onSuccess(startCb)
+    .onError(errorCb);
+     return service.run();
+    break;
+}
+
+
+
+
+}
+
+
 
 int main()
 {
-  setup();
-  while(true)
-  {
-    loop();
-  }
+
+  getConfig("alphaconfig.conf");
+  server_time = time(NULL);
+  int deltaTime = 0;
+  std::cout << "\nSpawning rabbitmq listener...\n";
+  threads[0] = std::thread(mqLoop,2);
+  threads[1] = std::thread(mqLoop,1);
+  threads[0].join();
+  threads[1].join();
+
+
+  //listenLoop();
+ // std::thread run_thread([&]{ listenLoop(); });
+  //boost::thread run_thread(boost::bind(&boost::asio::io_service::run, boost::ref(listenLoop())));
+
+
+
+
 }

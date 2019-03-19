@@ -5,6 +5,7 @@
 #include <math.h>
 
 #define DRV2605_ADDR 0x5A
+//#define DRV2605_ADDR 0x70 //MUX slave address
 
 #define DRV2605_REG_STATUS 0x00
 #define DRV2605_REG_MODE 0x01
