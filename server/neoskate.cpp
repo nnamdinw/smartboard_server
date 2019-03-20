@@ -1,6 +1,7 @@
 #include "neoskate.h"
 neoskate::neoskate()
 {
+  buzzTogg = 1;
   configNum = -1;
   bno = Adafruit_BNO055(55);
   flag = false;
@@ -26,7 +27,7 @@ void neoskate::togglePoll()
 
 void neoskate::setConfig(int in)
 {
-	configNum = -1;
+	configNum = in;
 }
 
 int neoskate::poll()
@@ -83,9 +84,20 @@ int neoskate::poll()
 
 void neoskate::buzz()
 {
-  uint8_t effect = 1;
-  mux.set(0);
-//    effect = 12;
+
+  if(buzzTogg == 1)
+  {
+  	  mux.set(buzzTogg);
+  	  buzzTogg++;
+  }
+  else if(buzzTogg == 2)
+  {
+  	  mux.set(buzzTogg);
+  	  buzzTogg--;
+  }
+
+  uint8_t effect = 12;
+  //effect = 12;
   hap.setWaveform(0,effect);
   hap.setWaveform(1,0);
   hap.go();

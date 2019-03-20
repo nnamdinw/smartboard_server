@@ -86,8 +86,9 @@ void mq::parseConfig(std::string name)
 
           std::string temp = msg.substr(pos,pos+1);
           configParam = atoi(temp.c_str());
+          skateInterface.setConfig(configParam);
           std::cout << "\nStarting sensor poll using config: " << configParam; 
-          poll = true;
+          //poll = true;
          // threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
       }
