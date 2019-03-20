@@ -80,11 +80,8 @@ void mq::parseConfig(std::string name)
   pos = msg.find("Pi_Control");
   if(pos != std::string::npos)
   { 
-    if(msg.find("Start_Poll") != std::string::npos)
-    { 
-      //*messageFlag = true;
-      std::cout << "\nStart Poll message received\n";
-      if((pos = msg.find("Config_")) != std::string::npos)
+
+      if((pos = msg.find("Set_Config_")) != std::string::npos)
       {
 
           std::string temp = msg.substr(pos,pos+1);
@@ -94,48 +91,58 @@ void mq::parseConfig(std::string name)
          // threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
       }
+
+    if(msg.find("Start_Poll") != std::string::npos)
+    { 
+      //*messageFlag = true;
+      skateInterface.togglePoll();
+      std::cout << "\nStart Poll message received\n";
     }
-    else if (msg.find("Stop_Poll") != std::string::npos)
+    if (msg.find("Stop_Poll") != std::string::npos)
     {
       //*messageFlag = false;
       std::cout << "\nPoll Stopping..\n";
-      poll = false;
+      skateInterface.togglePoll();
 //      threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
-    }
-    else if(msg.find("No_Poll") != std::string::npos)
-    {
-
-
-      if((pos = msg.find("Config_")) != std::string::npos)
-      {
-
-          std::string temp = msg.substr(pos,pos+1);
-          configParam = atoi(temp.c_str());
-
-      }
-      if((pos = msg.find("Optional_Param")) != std::string::npos)
-      {
-
-
-
-      }
     }
     else if (msg.find("buzz_0") != std::string::npos)
     {
    //   buzz(0);
-      exec(0);
+      //exec(0);
+      skateInterface.buzz();
     }
     else if (msg.find("buzz_1") != std::string::npos)
     {
    //   buzz(1);
+          skateInterface.buzz();
+
     }
 
 
   }
   return;
 }
+void mq::signalPublish(std::string in)
+{
+  mustPublish = true;
+  publish_message = in;
+}
 
+void mq::endPublish()
+{
+  mustPublish = false;
+}
+int mq::multiThread()
+{
+  std::thread t1(&mq::mqConsume,this);
+  std::thread t2(&mq::mqPublish,this);
+  //std::thread t3(&neoskate::poll,this->skateInterface);
+
+  t1.join();
+  t2.join();
+ // t3.join();
+}
 int mq::mqConsume()
 {
   auto startCb = [&](const std::string &consumertag) 
@@ -171,10 +178,15 @@ int mq::mqConsume()
      return asio_service.run();
 }
 
-int mq::mqPublish(std::string msg)
+int mq::mqPublish()
 {
-    amqp_channel.publish(exchangeName,routingkey,msg);
-    amqp_channel.commitTransaction();  
+    while(mustPublish)
+    {
+          amqp_channel.publish(exchangeName,routingkey,publish_message);
+          amqp_channel.commitTransaction();
+          mustPublish = false;
+    }
+
     return asio_service.run();
 
 }

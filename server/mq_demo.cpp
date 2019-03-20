@@ -143,13 +143,13 @@ int main()
   mq messageq(parseConfig("alphaconfig.conf"),mqservice,handler);
   //messageq.setFunc(0,buzz(0));
 
-  //std::thread t[2];
+  std::thread t[2];
   std::cout << "\nSpawning rabbitmq listener...\n";
   messageq.mqConsume();
 
 
-  //t[0] = std::thread(messageq.mqConsume());
+  //      threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
-  //t[0].join();
+
   return 0;
 }

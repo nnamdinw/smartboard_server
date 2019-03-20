@@ -1,4 +1,5 @@
 #include "mq_includes.h"
+//#include "neoskate.h"
 #define SZ_COMMANDTABLE 7
 class mq
 {
@@ -18,12 +19,14 @@ public:
       std::string vhostName;
       int heartbeat;
     };
-
+    void signalPublish(std::string);
+    void endPublish();
     void printMqConfig();
     int mqConsume();
     void setFunc(int,std::function<void(int)>);
-    int mqPublish(std::string);
+    int mqPublish();
     void exec(int);
+    int multiThread();
     mq(mq::skate_config configIn,boost::asio::io_service& ioserv_, AMQP::LibBoostAsioHandler& boosthandler) :
       asio_service(ioserv_),
       amqp_boost_handler(boosthandler),
@@ -60,9 +63,13 @@ public:
       skate_config s_c;
       int heartbeatTick;
       std::atomic<bool> poll;
+      std::atomic<bool> mustPublish;
+      std::string publish_message;
       std::function<void(int)> b_f;
      // void parseCommands(std::string);
       void parseConfig(std::string);
       void messageParse(std::string);
+      neoskate skateInterface;
+
 
 };

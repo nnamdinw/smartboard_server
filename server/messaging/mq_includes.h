@@ -1,9 +1,6 @@
 
-#include "../sensors/Adafruit_Sensor.h"
-#include "../sensors/Adafruit_BNO055.h"
-#include "../sensors/utility/imumaths.h"
-#include "../sensors/DRV2605.h"
-#include "../sensors/mux_drv2605.h"
+
+#include "../neoskate.h"
 #include <cstdio>
 #include <cstdlib>
 #include <boost/asio/io_service.hpp>
@@ -14,6 +11,6 @@
 #include <amqpcpp/libboostasio.h>
 #include <amqpcpp/linux_tcp.h>
 #include <mutex>
-#include <vector>
-#include <string>
+//#include <vector>
+//#include <string>
 #include <thread>
