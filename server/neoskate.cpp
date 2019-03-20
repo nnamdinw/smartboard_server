@@ -45,28 +45,28 @@ int neoskate::poll()
   std::string temp = "";
   sensors_event_t event;
   std::vector<std::string> output;
-
-	while(flag)
+	while(1)
 	{
+		while(flag)
+		{
+			 switch(configNum)    
+			 {
 
-			switch(configNum)    
-		    {
-
-		      case 1:
-		      case 2:
-		      case 3:
-		      case 4:
-		          bno.getEvent(&event);
-		          temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
-		          output.push_back(temp);
-		          delay(BNO055_SAMPLERATE_DELAY_MS);
-		   		  break;
-		   	 default:
-		   	 break;
-		    }
+			      case 1:
+			      case 2:
+			      case 3:
+			      case 4:
+				  bno.getEvent(&event);
+				  temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
+				  output.push_back(temp);
+				  delay(BNO055_SAMPLERATE_DELAY_MS);
+					  break;
+				 default:
+				 break;
+			    }
 
 
-	}
+		}
 		now = time(NULL);
 		std::string logName = std::to_string(now) + "_configType_"+ std::to_string(configNum) +".log";
 		std::ofstream out;
@@ -78,6 +78,8 @@ int neoskate::poll()
 		out.close();
 		logs.push_back(logName); 
 		output.clear();
+	}
+
 
 	//cleanup
 }
