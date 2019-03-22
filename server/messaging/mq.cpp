@@ -1,5 +1,8 @@
 #include "mq.h"
 
+const std::string mq::onSuccess = "publish_ok";
+const std::string mq::onFail = "publish_error";
+
 void mq::parseConfig(std::string name)
 {
 	//checks immediate dir for config file
@@ -24,7 +27,7 @@ void mq::parseConfig(std::string name)
   in.seekg(0,in.end);
   fileLen = in.tellg();
   in.seekg(0,in.beg);
-
+  size_t configSz = 10;
   if(fileLen != 0)
   {
 
@@ -33,17 +36,18 @@ void mq::parseConfig(std::string name)
       output.push_back(temp);
     }
 
-      if(output.size() == 9)
+      if(output.size() == configSz)
       {
         s_c.mq_server = output[0];
         s_c.mq_user = output[1];
         s_c.mq_password = output[2];
         s_c.mq_routingkey = output[3];
         s_c.mq_exchange = output[4];
-        s_c.mq_queueName = output[5];
-        s_c.configVersion = output[6];
-        s_c.vhostName = output[7];
-        std::istringstream(output[8]) >> s_c.heartbeat;
+        s_c.mq_queueName_to = output[5];
+        s_c.mq_queueName_from = output[6];
+        s_c.configVersion = output[7];
+        s_c.vhostName = output[8];
+        std::istringstream(output[9]) >> s_c.heartbeat;
    		  //std::istringstream(s_c.heartbeat) >> heartbeatTick;
         amqp_connection_string = "amqp://" + s_c.mq_user + ":" + s_c.mq_password + "@" + s_c.mq_server + "/" + s_c.vhostName;
 
@@ -51,8 +55,16 @@ void mq::parseConfig(std::string name)
       }
       else
       {
-        std::cout << "\nConfig Parse Unsuccesfull" << std::endl << "Too few newlines, need 8 received " << output.size() <<  std::endl << 
-        " File size of " << fileLen << std::endl;
+        std::cout << "\nConfig Parse Unsuccesfull" 
+        << std::endl 
+        << "Wrong number of newlines, need " 
+        << (configSz)
+        << " received "
+        << output.size()
+        <<  std::endl 
+        << " File size of "
+        << fileLen
+        << std::endl;
         exit(-1);
 
       }
@@ -84,10 +96,11 @@ void mq::parseConfig(std::string name)
       if((pos = msg.find("Set_Config_")) != std::string::npos)
       {
 
-          std::string temp = msg.substr(pos,pos+1);
+          std::string temp;
+          temp = msg.substr(msg.length() - 1);
+          //std::cout << "Parsed message " << temp << std::endl;
           configParam = atoi(temp.c_str());
           skateInterface.setConfig(configParam);
-          std::cout << "\nStarting sensor poll using config: " << configParam; 
           //poll = true;
          // threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
@@ -96,14 +109,14 @@ void mq::parseConfig(std::string name)
     if(msg.find("Start_Poll") != std::string::npos)
     { 
       //*messageFlag = true;
-      skateInterface.togglePoll();
+      skateInterface.setPoll(true);
       std::cout << "\nStart Poll message received\n";
     }
     if (msg.find("Stop_Poll") != std::string::npos)
     {
       //*messageFlag = false;
       std::cout << "\nPoll Stopping..\n";
-      skateInterface.togglePoll();
+      skateInterface.setPoll(false);
 //      threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
     }
@@ -119,10 +132,53 @@ void mq::parseConfig(std::string name)
           skateInterface.buzz();
 
     }
+     else if (msg.find("Ping") != std::string::npos)
+    {
+   //   buzz(1);
+        signalPublish("Pong");
+        //endPublish();
+
+    } 
+     else if (msg.find("Send_Config_") != std::string::npos)
+    {
+   //   buzz(1);
+        signalPublish(getPiConfig());
+        //endPublish();
+    } 
+
+    else if(msg.find("Terminate") != std::string::npos)
+    { 
+      endThreads();
+      exit(1);
+    }
+
 
 
   }
   return;
+}
+
+std::string mq::getPiConfig()
+{
+  std::string jsonOut = "{\"name\":\"" + s_c.mq_user+ "\", \"config\":\"" + s_c.configVersion + "\"}";
+  return jsonOut;
+
+  /*
+        s_c.mq_server = output[0];
+        s_c.mq_user = output[1];
+        s_c.mq_password = output[2];
+        s_c.mq_routingkey = output[3];
+        s_c.mq_exchange = output[4];
+        s_c.mq_queueName_to = output[5];
+        s_c.mq_queueName_from = output[6];
+        s_c.configVersion = output[7];
+        s_c.vhostName = output[8];
+        std::istringstream(output[9]) >> s_c.heartbeat;
+  {"name":"s_c.mq_user", "config":configVersion}
+    
+
+  */
+
 }
 void mq::signalPublish(std::string in)
 {
@@ -134,14 +190,31 @@ void mq::endPublish()
 {
   mustPublish = false;
 }
+void mq::skateInterfacePoll()
+{
+  //std::cout << "Launching poll thread";
+  if(skateInterface.poll() == -1)
+  {
+    signalPublish("Pi_Message_PollError");
+  }
+  else
+  {
+    signalPublish("Pi_Message_PollEnd");
+  }
+    //std::cout << "Ending poll thread";
+
+}
 int mq::multiThread()
 {
-  std::thread t1(&mq::mqConsume,this);
-  std::thread t2(&mq::mqPublish,this);
-  //std::thread t3(&neoskate::poll,this->skateInterface);
-
-  t1.join();
-  t2.join();
+ // std::thread t1(&mq::mqConsume,this);
+  //std::thread t2(&mq::mqPublish,this);
+   t3 = std::thread(&mq::skateInterfacePoll,this);
+   t1 = std::thread(&mq::mqConsume,this);
+   t2 = std::thread(&mq::mqPublish,this);
+   
+  //t2.join();
+  //t1.join();
+  
  // t3.join();
 }
 int mq::mqConsume()
@@ -163,42 +236,68 @@ int mq::mqConsume()
   auto messageCb = [&](const AMQP::Message &message, uint64_t deliveryTag, bool redelivered) 
   {
 
-      std::cout << "message received" << ": " << message.body() << std::endl;
+      //std::cout << "message received" << ": " << message.body() << std::endl;
       //Parse Message
-      amqp_channel.ack(deliveryTag);
+      amqp_channel_to.ack(deliveryTag);
 
      // std::cout << (std::string)message.body();
-      messageParse(std::string(message.body()));
+      messageParse(std::string(message.body(),message.bodySize()));
       // acknowledge the message
   };
 
-    amqp_channel.consume(queueName)
+    amqp_channel_to.consume(queueNameTo)
     .onReceived(messageCb)
     .onSuccess(startCb)
     .onError(errorCb);
      return asio_service.run();
 }
 
+void mq::endThreads()
+{
+
+
+
+  if(t1.joinable())
+  {
+    t1.join();
+  }
+
+  if(t2.joinable())
+  {
+    t2.join();
+  }
+
+  if(t3.joinable())
+  {
+    t3.join();
+  }
+
+  amqp_channel_to.close();
+  amqp_channel_from.close();
+
+}
 int mq::mqPublish()
 {
-    while(mustPublish)
-    {
-          amqp_channel.publish(exchangeName,routingkey,publish_message);
-          amqp_channel.commitTransaction();
+  while(1)
+  {
+    if(mustPublish)
+    {     
+          amqp_channel_from.startTransaction();
+          amqp_channel_from.publish(exchangeName,routingkey,publish_message);
+          amqp_channel_from.commitTransaction().onSuccess([]() {
+            std::cout << onSuccess << std::endl;  
+
+          })
+          .onError([](const char* message){
+          std::cout << onFail << std::endl;         });
           mustPublish = false;
+          //asio_service.run();
     }
 
-    return asio_service.run();
+        //return 
 
-}
 
-void mq::setFunc(int index, std::function<void(int)> func)
-{
-  //b_f = func;
-}
+  }
 
-void mq::exec(int index)
-{
-  //b_f();
-  return;
+  return 1;
 }

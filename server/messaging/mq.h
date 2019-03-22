@@ -14,62 +14,79 @@ public:
       std::string mq_password;
       std::string mq_exchange;
       std::string mq_routingkey;
-      std::string mq_queueName;
+      std::string mq_queueName_to; // to pi from web
+      std::string mq_queueName_from; //from pi to web
       std::string configVersion;
       std::string vhostName;
       int heartbeat;
     };
+    void skateInterfacePoll();
+
     void signalPublish(std::string);
     void endPublish();
     void printMqConfig();
     int mqConsume();
-    void setFunc(int,std::function<void(int)>);
+    //void setFunc(int,std::function<void(int)>);
     int mqPublish();
-    void exec(int);
+    //void exec(int);
     int multiThread();
-    mq(mq::skate_config configIn,boost::asio::io_service& ioserv_, AMQP::LibBoostAsioHandler& boosthandler) :
+    void endThreads();
+    std::string getPiConfig();
+    //~mq();
+    mq(mq::skate_config configIn,boost::asio::io_service& ioserv_, AMQP::LibBoostAsioHandler& boosthandler,neoskate& nskate) :
       asio_service(ioserv_),
       amqp_boost_handler(boosthandler),
       amqp_TCP(&amqp_boost_handler, AMQP::Address("amqp://" + configIn.mq_user + ":" + configIn.mq_password + "@" + configIn.mq_server + "/" + configIn.vhostName)),
-      amqp_channel(&amqp_TCP)
+      amqp_channel_to(&amqp_TCP),
+      amqp_channel_from(&amqp_TCP),
+      skateInterface(nskate)
       {
 
         //parseConfig(configDir);
         exchangeName = configIn.mq_exchange;
-        queueName = configIn.mq_queueName;
+        queueNameTo = configIn.mq_queueName_to;
+        queueNameFrom = configIn.mq_queueName_from;
         routingkey = configIn.mq_routingkey;
-        
-        //s_c = config
+        s_c = configIn;
        //heartbeatTick = atoi(s_c.heartbeat.c_str());
         //asio_service = boost::asio::io_service(2);
         //amqp_boost_handler = AMQP::LibBoostAsioHandler(io_serv);
         ///amqp_TCP =  AMQP::TcpConnection(&boosthandler,AMQP::Address(amqp_connection_string));
         //amqp_channel(&amqp_TCP);
 
-        amqp_channel.declareExchange(exchangeName, AMQP::fanout);
-        amqp_channel.declareQueue(queueName);
-        amqp_channel.bindQueue(exchangeName, queueName,routingkey);
+        amqp_channel_to.declareExchange(exchangeName, AMQP::direct);
+        
+        amqp_channel_to.declareQueue(queueNameTo);
+        amqp_channel_from.declareQueue(queueNameFrom);
+
+        amqp_channel_to.bindQueue(exchangeName, queueNameTo,routingkey);
+        amqp_channel_from.bindQueue(exchangeName,queueNameFrom,routingkey);
+        mustPublish = false;
+        //onSuccess = "ok";
+        //onFail = "error";
 
     } //pass dir to config file
 
 
     private:
-      std::string exchangeName,queueName,routingkey,amqp_connection_string;
+      std::thread t1,t2,t3; //send, rec, poll & file io
+      std::string exchangeName,queueNameTo,queueNameFrom,routingkey,amqp_connection_string;
+      static const std::string onSuccess;
+      static const std::string onFail;
       boost::asio::io_service& asio_service;
       AMQP::LibBoostAsioHandler& amqp_boost_handler;
       AMQP::TcpConnection amqp_TCP;
-      AMQP::TcpChannel amqp_channel;
+      AMQP::TcpChannel amqp_channel_to;
+      AMQP::TcpChannel amqp_channel_from;
       std::string commandTable[SZ_COMMANDTABLE];
       skate_config s_c;
       int heartbeatTick;
       std::atomic<bool> poll;
       std::atomic<bool> mustPublish;
       std::string publish_message;
-      std::function<void(int)> b_f;
-     // void parseCommands(std::string);
       void parseConfig(std::string);
       void messageParse(std::string);
-      neoskate skateInterface;
+      neoskate &skateInterface; //don't copy this or it'll invalida tea all our  cool i2c stuff
 
 
 };
