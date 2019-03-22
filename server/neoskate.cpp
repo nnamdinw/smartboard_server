@@ -89,8 +89,6 @@ while(1)
 		   	 break;
 		    }
 
-      }
-
       if(postPoll)
       {
         frameTime = time(NULL);
@@ -107,15 +105,10 @@ while(1)
         //std::cout << "wrote log: " << logName;
         postPoll = false;
 
-      }
-
-
-    
-
-	}
+       }
+  	}
+  }
     return 1;
-
-	//cleanup
 }
 
 void neoskate::buzz()
