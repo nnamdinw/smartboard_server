@@ -3,6 +3,8 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <chrono>
+#include <ctime>
 #include "sensors/Adafruit_Sensor.h"
 #include "sensors/Adafruit_BNO055.h"
 #include "sensors/utility/imumaths.h"
@@ -15,7 +17,10 @@ class neoskate {
 
 
 private:
+	static const std::string logDir;
+	std::fstream fileio;
 	int buzzTogg;
+	//bool newPoll;
 	Adafruit_BNO055 bno;
 	DRV2605 hap;
 	mux_drv2605 mux;
@@ -26,6 +31,7 @@ private:
 	long timestamp;
 	float ax,ay,az,pitch,yaw,roll,rpm,wheelspeed,altitude,temperature,q0,q1,q2,q3;
 	std::atomic<bool> flag;
+	std::atomic<bool> newPoll;
 	std::atomic<int> configNum;
 	std::vector<std::string> logs;
 
@@ -53,8 +59,14 @@ public:
 	//sk8_packet createDataPacket();
 	int poll();
 	void buzz();
+	bool isNewPoll(); //tru if theres new poll logged
+	void setNewPoll(bool);
 	//std::string frameToString(sk8_packet);
 	neoskate();
+	bool pollStatus();
 	void setPoll(bool);
 	void setConfig(int);
+	int getSzLogs();
+	std::string getLogs(); //return json of saved logs
+	std::string fetchLog(int); //read in log from disk and do something 
 };

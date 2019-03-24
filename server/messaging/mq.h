@@ -33,13 +33,13 @@ public:
     void endThreads();
     std::string getPiConfig();
     //~mq();
-    mq(mq::skate_config configIn,boost::asio::io_service& ioserv_, AMQP::LibBoostAsioHandler& boosthandler,neoskate& nskate) :
+    mq(mq::skate_config configIn,boost::asio::io_service& ioserv_, AMQP::LibBoostAsioHandler& boosthandler/*,neoskate& nskate*/) :
       asio_service(ioserv_),
       amqp_boost_handler(boosthandler),
       amqp_TCP(&amqp_boost_handler, AMQP::Address("amqp://" + configIn.mq_user + ":" + configIn.mq_password + "@" + configIn.mq_server + "/" + configIn.vhostName)),
       amqp_channel_to(&amqp_TCP),
-      amqp_channel_from(&amqp_TCP),
-      skateInterface(nskate)
+      amqp_channel_from(&amqp_TCP)/*,
+      skateInterface(nskate)*/
       {
 
         //parseConfig(configDir);
@@ -86,7 +86,8 @@ public:
       std::string publish_message;
       void parseConfig(std::string);
       void messageParse(std::string);
-      neoskate &skateInterface; //don't copy this or it'll invalida tea all our  cool i2c stuff
+      //neoskate &skateInterface; //don't copy this or it'll invalida tea all our  cool i2c stuff
+      neoskate skateInterface;
 
 
 };

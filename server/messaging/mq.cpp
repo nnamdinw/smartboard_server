@@ -84,7 +84,7 @@ void mq::parseConfig(std::string name)
  {
 
 	  size_t pos = 0;
-	  int configParam = 0;
+	  int param = 0;
 	  bool* messageFlag = NULL;
   /*
       Pi_Control,Start_Poll/Stop_Poll/No_Poll,Config Preset,[Optional Input]
@@ -99,8 +99,8 @@ void mq::parseConfig(std::string name)
           std::string temp;
           temp = msg.substr(msg.length() - 1);
           //std::cout << "Parsed message " << temp << std::endl;
-          configParam = atoi(temp.c_str());
-          skateInterface.setConfig(configParam);
+          param = atoi(temp.c_str());
+          skateInterface.setConfig(param);
           //poll = true;
          // threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
@@ -115,8 +115,15 @@ void mq::parseConfig(std::string name)
     if (msg.find("Stop_Poll") != std::string::npos)
     {
       //*messageFlag = false;
+      if(skateInterface.isNewPoll())
+      {
+        //signalPublish("Pi_Message_Logs");
+        signalPublish(skateInterface.getLogs());
+      }
       std::cout << "\nPoll Stopping..\n";
       skateInterface.setPoll(false);
+      skateInterface.setNewPoll(false); //reset flag cuz we've pulled new logs
+
 //      threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
     }
@@ -132,6 +139,26 @@ void mq::parseConfig(std::string name)
           skateInterface.buzz();
 
     }
+     else if (msg.find("Request_Log") != std::string::npos)
+     {
+          std::string temp;
+          temp = msg.substr(msg.length() - 1);
+          //std::cout << "Parsed message " << temp << std::endl;
+          param = atoi(temp.c_str());
+          if(param < skateInterface.getSzLogs())
+          {
+            //ok seems good send log over rabbitmq
+            signalPublish("Pi_Message_Log_Data_" + skateInterface.fetchLog(param));
+            //signalPublish();
+
+          }
+          else
+          {
+              signalPublish("Pi_Message_Error_Log_OutOfBounds");
+
+          }
+     }
+
      else if (msg.find("Ping") != std::string::npos)
     {
    //   buzz(1);
@@ -193,6 +220,7 @@ void mq::endPublish()
 void mq::skateInterfacePoll()
 {
   //std::cout << "Launching poll thread";
+
   if(skateInterface.poll() == -1)
   {
     signalPublish("Pi_Message_PollError");

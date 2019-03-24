@@ -1,4 +1,6 @@
 #include "neoskate.h"
+
+const std::string neoskate::logDir = "logs/";
 neoskate::neoskate()
 {
   buzzTogg = 1;
@@ -14,10 +16,11 @@ neoskate::neoskate()
 
   /* Display the current temperature */
 
-  bno.setExtCrystalUse(true);
+  //bno.setExtCrystalUse(true);
 
 
   flag = false;
+  newPoll = false;
   mux.addEntry(1);
   mux.addEntry(2);
 
@@ -42,7 +45,37 @@ void neoskate::setConfig(int in)
 {
 	configNum = in;
 }
-zz
+
+std::string neoskate::getLogs()
+{
+  //std::string output = "{\"logs\":[{";
+  std::string output = "{\"logs\":[";
+  for(int i =0; i < logs.size();i++)
+  {
+    //output += "\"" + std::to_string(i) + "\":" +  "\"" + logs.at(i) + "\"";
+    output += "{\"index\":\"" + std::to_string(i) + "\",\"filename\":\"" + logs.at(i) + "\"}";
+    if(i < logs.size() - 1)
+    {
+      output += ",";
+    }
+  }
+  output 
+  += "]}";
+  return output;
+}
+bool neoskate::pollStatus()
+{
+  return flag;
+}
+bool neoskate::isNewPoll()
+{
+  return newPoll;
+}
+
+void neoskate::setNewPoll(bool in)
+{
+  newPoll = in;
+}
 int neoskate::poll()
 {
   if(configNum	< 0)
@@ -58,6 +91,9 @@ int neoskate::poll()
   sensors_event_t event;
   std::vector<std::string> output;
   bool postPoll = false;
+  bool firstLoop = false;
+  std::chrono::steady_clock::time_point start;
+  std::chrono::milliseconds sampleTime;
   //buzz();
   //std::cout << "\nHi";
 
@@ -65,11 +101,18 @@ int neoskate::poll()
 while(1)
 {
     //buzz();
-
 	while(flag)
 	{
       //buzz();
-      postPoll = true;
+      if(!firstLoop)
+      {
+        postPoll = true;
+        setNewPoll(true);
+        start = std::chrono::steady_clock::now();
+        firstLoop = true;
+
+      }
+
 			switch(configNum)    
 		    {
 
@@ -78,10 +121,13 @@ while(1)
 		      case 3:
 		      case 4:
               //buzz();
+
 		          bno.getEvent(&event);
-              frameTime = time(NULL);
+              //frameTime = time(NULL);
+              sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
+
 		          //temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
-             temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"time\":\"" + std::to_string(frameTime)+ "\"}\n";
+              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}\n";
 		          output.push_back(temp);
 		          delay(BNO055_SAMPLERATE_DELAY_MS);
 		   		  break;
@@ -89,26 +135,53 @@ while(1)
 		   	 break;
 		    }
 
+      }
+
       if(postPoll)
       {
         frameTime = time(NULL);
         std::string logName = std::to_string(frameTime) + "_configType_"+ std::to_string(configNum) +".log";
-        std::ofstream out;
-        out.open(logName);
+        fileio.open(logDir + logName, std::fstream::out);
         for(std::vector<std::string>::iterator it = output.begin();it != output.end();it++)
         {
-          out << *it;
+          fileio << *it;
         }
-        out.close();
+        fileio.close();
         logs.push_back(logName); 
         output.clear();
         //std::cout << "wrote log: " << logName;
         postPoll = false;
+        firstLoop = false;
+      }
 
-       }
-  	}
-  }
+
+    
+
+	}
     return 1;
+
+}
+ int neoskate::getSzLogs()
+ {
+  return logs.size();
+ }
+std::string neoskate::fetchLog(int index)
+{
+        //std::ofstream out;
+        std::string out = ""; 
+        std::string contents = "";
+        fileio.open(logDir + logs.at(index),std::fstream::in | std::fstream::app);
+        while(std::getline(fileio,contents))
+          {
+            //fileio << out;
+            out += contents;
+          }
+       
+        //std::cout << out;
+        fileio << out;
+        fileio.close();
+        return out;
+
 }
 
 void neoskate::buzz()
