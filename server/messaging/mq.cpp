@@ -265,12 +265,13 @@ int mq::mqConsume()
   {
 
       //std::cout << "message received" << ": " << message.body() << std::endl;
-      //Parse Message
+          // acknowledge the message
       amqp_channel_to.ack(deliveryTag);
 
      // std::cout << (std::string)message.body();
+            //Parse Message
+
       messageParse(std::string(message.body(),message.bodySize()));
-      // acknowledge the message
   };
 
     amqp_channel_to.consume(queueNameTo)

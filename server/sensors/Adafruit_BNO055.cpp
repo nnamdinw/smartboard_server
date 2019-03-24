@@ -46,6 +46,8 @@ Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address) {
   setFd(wiringPiI2CSetup(BNO055_ADDRESS_A));
   _sensorID = sensorID;
   _address = address;
+
+  
 }
 
 /*!

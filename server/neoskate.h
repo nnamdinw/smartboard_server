@@ -10,6 +10,8 @@
 #include "sensors/utility/imumaths.h"
 #include "sensors/DRV2605.h"
 #include "sensors/mux_drv2605.h"
+#include "sensors/utility/imumaths.h"
+
 #define BNO055_SAMPLERATE_DELAY_MS (100)
 
 class neoskate {
@@ -18,6 +20,8 @@ class neoskate {
 
 private:
 	static const std::string logDir;
+	static const std::string configDir;
+	void saveCalData(adafruit_bno055_offsets_t&);
 	std::fstream fileio;
 	int buzzTogg;
 	//bool newPoll;
@@ -57,6 +61,7 @@ public:
 	};
 
 	//sk8_packet createDataPacket();
+	void printCalData();
 	int poll();
 	void buzz();
 	bool isNewPoll(); //tru if theres new poll logged
