@@ -19,6 +19,8 @@ class neoskate {
 
 
 private:
+	bool hasLED;
+	int errorState;
 	static const std::string logDir;
 	static const std::string configDir;
 	void saveCalData(adafruit_bno055_offsets_t&);
@@ -28,7 +30,7 @@ private:
 	Adafruit_BNO055 bno;
 	DRV2605 hap;
 	mux_drv2605 mux;
-	//int configNum;
+	int led1pin,led2pin;
 	int packet_version;
 	//frame data
 	int index;
@@ -61,6 +63,11 @@ public:
 	};
 
 	//sk8_packet createDataPacket();
+	void enableLED();
+	void setErrorState(int);
+	void indicate();
+	void setLED(int,bool);
+	void initLED(int,int);
 	void printCalData();
 	int poll();
 	void buzz();
@@ -69,6 +76,7 @@ public:
 	//std::string frameToString(sk8_packet);
 	neoskate();
 	bool pollStatus();
+	void enableHaptics();
 	void setPoll(bool);
 	void setConfig(int);
 	int getSzLogs();

@@ -10,6 +10,7 @@ neoskate::neoskate()
   bno = Adafruit_BNO055();
   std::vector<std::string> cal;
   std::string temp = "";
+  hasLED = false;
   if(!bno.begin(Adafruit_BNO055::OPERATION_MODE_IMUPLUS))
   {
     /* There was a problem detecting the BNO055 ... check your connections */
@@ -76,15 +77,15 @@ neoskate::neoskate()
             /* Wait the specified delay before requesting new data */
             delay(BNO055_SAMPLERATE_DELAY_MS);
         }
-        std::cout << "\nCalibration Complete.. Writing to disk at /config/bno05.conf\n";
+        //std::cout << "\nCalibration Complete.. Writing to disk at /config/bno05.conf\n";
 
         adafruit_bno055_offsets_t newCalib;
         bno.getSensorOffsets(newCalib);
         saveCalData(newCalib);
 
       }
-std::cout << "\nCal data loaded.";
-printCalData();
+//std::cout << "\nCal data loaded.";
+//printCalData();
 
   delay(1000);
 
@@ -93,6 +94,17 @@ printCalData();
 
   flag = false;
   newPoll = false;
+  errorState = false;
+}
+
+void neoskate::setErrorState(int in)
+{
+
+  //0+ good, <0 bad
+  errorState = in;
+}
+void neoskate::enableHaptics()
+{
   mux.addEntry(1);
   mux.addEntry(2);
 
@@ -105,6 +117,64 @@ printCalData();
   hap.begin();
   hap.selectLibrary(1);
   hap.setMode(DRV2605_MODE_INTTRIG);
+}
+void neoskate::indicate()
+{
+  if(hasLED)
+  {
+    setLED(2,FALSE);
+    delay(100);
+    //setLED(2,FALSE);
+  }
+  else
+  {
+    buzz();
+  }
+}
+void neoskate::enableLED()
+{
+    initLED(0,7);
+    hasLED = true;
+}
+void neoskate::setLED(int led,bool state)
+{
+  // State  true = pull pin high / else pull pin low
+  if(led == 1)
+  {
+    if(state)
+    {
+      digitalWrite(led1pin,HIGH);
+
+    }
+    else
+    {
+      digitalWrite(led1pin,LOW);
+    }
+  }
+  if(led == 2)
+  {
+    if(state)
+    {
+      digitalWrite(led2pin,HIGH);
+
+    }
+    else
+    {
+      digitalWrite(led2pin,LOW);
+    }
+  }
+
+return;
+}
+void neoskate::initLED(int pin1, int pin2)
+{
+  wiringPiSetup();
+  pinMode(pin1,OUTPUT);
+  pinMode(pin2,OUTPUT);
+  led1pin = pin1;
+  led2pin = pin2;
+
+  return;
 }
 void neoskate::saveCalData(adafruit_bno055_offsets_t &in)
 {
@@ -207,7 +277,20 @@ int neoskate::poll()
 
 while(1)
 {
-    //buzz();
+    if(errorState < 0 && hasLED)
+    {
+      setLED(1,TRUE);
+      setLED(2,TRUE);
+      delay(250);
+      setLED(1,FALSE);
+      setLED(2,FALSE);
+    }
+    else
+    {
+      setLED(2,HIGH);
+      delay(500);
+
+    }
 	while(flag)
 	{
       //buzz();
@@ -216,6 +299,10 @@ while(1)
         postPoll = true;
         start = std::chrono::steady_clock::now();
         firstLoop = true;
+        if(hasLED)
+        {
+          setLED(1,TRUE);
+        }
 
       }
 
@@ -277,6 +364,10 @@ while(1)
         postPoll = false;
         firstLoop = false;
         setNewPoll(true);
+        if(hasLED)
+        {
+          setLED(1,FALSE);
+        }
 
       }
 

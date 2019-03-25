@@ -51,7 +51,7 @@ void mq::parseConfig(std::string name)
    		  //std::istringstream(s_c.heartbeat) >> heartbeatTick;
         amqp_connection_string = "amqp://" + s_c.mq_user + ":" + s_c.mq_password + "@" + s_c.mq_server + "/" + s_c.vhostName;
 
-        std::cout << "\nConfig Parse Succesfull" << std::endl;
+        //std::cout << "\nConfig Parse Succesfull" << std::endl;
       }
       else
       {
@@ -110,7 +110,7 @@ void mq::parseConfig(std::string name)
     { 
       //*messageFlag = true;
       skateInterface.setPoll(true);
-      std::cout << "\nStart Poll message received\n";
+      //std::cout << "\nStart Poll message received\n";
     }
     if (msg.find("Stop_Poll") != std::string::npos)
     {
@@ -120,18 +120,18 @@ void mq::parseConfig(std::string name)
         //signalPublish("Pi_Message_Logs");
         signalPublish(skateInterface.getLogs());
       }
-      std::cout << "\nPoll Stopping..\n";
+      //std::cout << "\nPoll Stopping..\n";
       skateInterface.setPoll(false);
       skateInterface.setNewPoll(false); //reset flag cuz we've pulled new logs
 
 //      threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
     }
-    else if (msg.find("buzz_0") != std::string::npos)
+    else if (msg.find("indicate") != std::string::npos)
     {
    //   buzz(0);
       //exec(0);
-      skateInterface.buzz();
+      skateInterface.indicate();
     }
     else if (msg.find("buzz_1") != std::string::npos)
     {
@@ -250,7 +250,9 @@ int mq::mqConsume()
   auto startCb = [&](const std::string &consumertag) 
   {
 
-    std::cout << "consume operation started" << std::endl;  
+    //std::cout << "consume operation started" << std::endl;  
+          skateInterface.setErrorState(1);
+
   };
 
 // callback function that is called when the consume operation failed
@@ -258,6 +260,7 @@ int mq::mqConsume()
   {
 
       std::cout << "consume operation failed with error " << std::string(message) << std::endl;
+      skateInterface.setErrorState(-1);
   };
 
 // callback operation when a message was received
@@ -314,7 +317,7 @@ int mq::mqPublish()
           amqp_channel_from.startTransaction();
           amqp_channel_from.publish(exchangeName,routingkey,publish_message);
           amqp_channel_from.commitTransaction().onSuccess([]() {
-            std::cout << onSuccess << std::endl;  
+            //std::cout << onSuccess << std::endl;  
 
           })
           .onError([](const char* message){
