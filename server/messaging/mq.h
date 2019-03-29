@@ -21,7 +21,7 @@ public:
       int heartbeat;
     };
     void skateInterfacePoll();
-
+    void skateInterfaceCalibrate();
     void signalPublish(std::string);
     void endPublish();
     void printMqConfig();
@@ -62,6 +62,14 @@ public:
         amqp_channel_to.bindQueue(exchangeName, queueNameTo,routingkey);
         amqp_channel_from.bindQueue(exchangeName,queueNameFrom,routingkey);
         mustPublish = false;
+        if(s_c.configVersion == "1")
+        {
+          skateInterface.enableLED();
+        }
+        if(s_c.configVersion == "0")
+        {
+          skateInterface.enableHaptics();
+        }
         //onSuccess = "ok";
         //onFail = "error";
 

@@ -1,7 +1,7 @@
 #include "neoskate.h"
 
-const std::string neoskate::logDir = "logs/";
-const std::string neoskate::configDir = "config/";
+const std::string neoskate::logDir = "/home/pi/Skate/logs/";
+const std::string neoskate::configDir = "/home/pi/Skate/config/";
 neoskate::neoskate()
 { 
   //bn055 calibratino is 11 entry struct of ints
@@ -11,6 +11,12 @@ neoskate::neoskate()
   std::vector<std::string> cal;
   std::string temp = "";
   hasLED = false;
+  calibOutput = "";
+  needsCalibration = false;
+  pollStream = false;
+  newFrame = false;
+  calibrating = false;
+  pollFrame = "";
   if(!bno.begin(Adafruit_BNO055::OPERATION_MODE_IMUPLUS))
   {
     /* There was a problem detecting the BNO055 ... check your connections */
@@ -49,6 +55,7 @@ neoskate::neoskate()
             i++;
             savedConfig.mag_radius = (int16_t)std::stoi(cal.at(i));
             bno.setSensorOffsets(savedConfig);
+            bno.setExtCrystalUse(true);
           }
           else
           {
@@ -61,48 +68,64 @@ neoskate::neoskate()
       
       if(cal.size() != 11)
       {
+         needsCalibration = true;
+      }
+  //std::cout << "\nCal data loaded.";
+  //printCalData();
+  flag = false;
+  newPoll = false;
+  errorState = 0;
+}
+std::string neoskate::getFrame()
+{
+  newFrame = false;
+  return pollFrame;
+}
+void neoskate::calibrateBNO055()
+{
+        //std::cout << "\nSensor offsets file not found.. Calibrating.\n";
 
-
-        std::cout << "\nSensor offsets file not found.. Calibrating.\n";
         sensors_event_t event;
         bno.getEvent(&event);
-        while (!bno.isFullyCalibrated())
+        if (!bno.isFullyCalibrated())
         {
             bno.getEvent(&event);
             /* Optional: Display calibration status */
-            printCalData();
+            //printCalData();
+            updateCalOutput();
             /* New line for the next sample */
-            std::cout << std::endl;
+            //std::cout << std::endl;
 
             /* Wait the specified delay before requesting new data */
             delay(BNO055_SAMPLERATE_DELAY_MS);
         }
         //std::cout << "\nCalibration Complete.. Writing to disk at /config/bno05.conf\n";
-
+        needsCalibration = false;
         adafruit_bno055_offsets_t newCalib;
         bno.getSensorOffsets(newCalib);
         saveCalData(newCalib);
 
-      }
-//std::cout << "\nCal data loaded.";
-//printCalData();
-
-  delay(1000);
-
-  bno.setExtCrystalUse(true);
-
-
-  flag = false;
-  newPoll = false;
-  errorState = false;
 }
-
+bool neoskate::getCalibrationStatus()
+{
+  return needsCalibration;
+}
 void neoskate::setErrorState(int in)
 {
 
   //0+ good, <0 bad
   errorState = in;
 }
+bool neoskate::isCalibrating()
+{
+  return calibrating;
+}
+
+void neoskate::setCalibrating(bool a)
+{
+  calibrating = a;
+}
+
 void neoskate::enableHaptics()
 {
   mux.addEntry(1);
@@ -210,6 +233,25 @@ void neoskate::printCalData()
               << "\nMag: " << std::to_string(mag);
 }
 
+void neoskate::updateCalOutput()
+{
+    uint8_t system, gyro, accel, mag;
+    system = gyro = accel = mag = 0;
+    bno.getCalibration(&system, &gyro, &accel, &mag);
+    std::string output = "";
+
+     output =  "\nSystem: " +  std::to_string( (system/3.0) * 100) + "%";
+     output += "\nGyro : " + std::to_string((gyro/3.0) * 100) + "%";
+     output += "\nAccel: " + std::to_string((accel/3.0) * 100) + "%";
+     output += "\nMag: " + std::to_string((mag/3.0) * 100) + "%";
+     calibOutput = output;
+}
+
+std::string neoskate::getCalibrationProgress()
+{
+  return calibOutput;
+}
+
 void neoskate::setPoll(bool a)
 {
 	flag = a;
@@ -247,6 +289,11 @@ bool neoskate::isNewPoll()
   return newPoll;
 }
 
+bool neoskate::newPollData()
+{
+  return newFrame;
+}
+
 void neoskate::setNewPoll(bool in)
 {
   newPoll = in;
@@ -281,7 +328,7 @@ while(1)
     {
       setLED(1,TRUE);
       setLED(2,TRUE);
-      delay(250);
+      delay(550);
       setLED(1,FALSE);
       setLED(2,FALSE);
     }
@@ -315,6 +362,11 @@ while(1)
 		          //temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
               temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}\n";
 		          output.push_back(temp);
+              if(pollStream)
+              {
+                pollFrame = temp;
+                newFrame = true;
+              }
 		          delay(BNO055_SAMPLERATE_DELAY_MS);
 		   		  break;
           case 2:
@@ -322,6 +374,11 @@ while(1)
               sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
               temp = "{\"qW\":\"" + std::to_string(quat.w()) + "\", \"qX\":\"" + std::to_string(quat.x()) + "\",\"qY\":\"" +std::to_string(quat.y()) + "\",\"qZ\":\"" + std::to_string(quat.z()) + "\",\"time\":\"" +std::to_string(sampleTime.count()) + "\"}\n";
               output.push_back(temp);
+              if(pollStream)
+              {
+                pollFrame = temp;
+                newFrame = true;
+              }
               delay(BNO055_SAMPLERATE_DELAY_MS);
               break;
           case 3:
@@ -331,6 +388,11 @@ while(1)
               //temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
               temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"aX\":\"" +std::to_string(accel.x()) + "\", \"aY\":\"" + std::to_string(accel.y()) + "\",\"aZ\":\"" +std::to_string(accel.z()) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}\n";
               output.push_back(temp);
+              if(pollStream)
+              {
+                pollFrame = temp;
+                newFrame = true;
+              }
               delay(BNO055_SAMPLERATE_DELAY_MS);
               break;
           case 4:
@@ -339,6 +401,11 @@ while(1)
               sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
               temp = "{\"qW\":\"" + std::to_string(quat.w()) + "\", \"qX\":\"" + std::to_string(quat.x()) + "\",\"qY\":\"" +std::to_string(quat.y()) + "\",\"qZ\":\"" + std::to_string(quat.z()) + "\",\"aX\":\"" +std::to_string(accel.x()) + "\", \"aY\":\"" + std::to_string(accel.y()) + "\",\"aZ\":\"" +std::to_string(accel.z()) + "\",\"time\":\"" +std::to_string(sampleTime.count()) + "\"}\n";
               output.push_back(temp);
+              if(pollStream)
+              {
+                pollFrame = temp;
+                newFrame = true;
+              }
               delay(BNO055_SAMPLERATE_DELAY_MS);
               break;
 		   	 default:
@@ -377,6 +444,18 @@ while(1)
 	}
     return 1;
 
+}
+std::string neoskate::getPollFrame()
+{
+  return "Pi_Message_Poll_Frame_" + pollFrame;
+}
+bool neoskate::getStreamStatus()
+{
+  return pollStream;
+}
+void neoskate::togglePollStream()
+{
+  pollStream = !pollStream;
 }
  int neoskate::getSzLogs()
  {

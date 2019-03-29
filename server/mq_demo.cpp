@@ -51,7 +51,7 @@ mq::skate_config parseConfig(std::string name)
         //std::istringstream(s_c.heartbeat) >> heartbeatTick;
         //amqp_connection_string = "amqp://" + s_c.mq_user + ":" + s_c.mq_password + "@" + s_c.mq_server + "/" + s_c.vhostName;
 
-        std::cout << "\nConfig Parse Succesfull" << std::endl;
+        //std::cout << "\nConfig Parse Succesfull" << std::endl;
       }
       else
       {
@@ -83,13 +83,12 @@ int main()
 {
 //  neoskate hardwareInterface;
 
-  std::vector<std::string> log;
   //std::function<void(int)> bf = buzz;
   boost::asio::io_service mqservice(2);
   AMQP::LibBoostAsioHandler handler(mqservice);
 
   //bf = buzz;
-mq messageq(parseConfig("alphaconfig.conf"),mqservice,handler);
+  mq messageq(parseConfig("/home/pi/config.conf"),mqservice,handler);
 //  mq messageq(parseConfig("alphaconfig.conf"),mqservice,handler,hardwareInterface);
 //  std::cout << "\nSpawning rabbitmq listener...\n";
   messageq.multiThread();

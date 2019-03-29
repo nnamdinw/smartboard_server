@@ -127,6 +127,33 @@ void mq::parseConfig(std::string name)
 //      threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
     }
+    if (msg.find("Stream_Status") != std::string::npos)
+    {
+
+      signalPublish("Pi_Message_StreamEnabled_" + skateInterface.getStreamStatus());
+
+    }
+    if (msg.find("Toggle_Stream") != std::string::npos)
+    {
+
+      skateInterface.togglePollStream();
+
+    }
+    if (msg.find("Calibrate_IMU") != std::string::npos)
+    {
+
+      skateInterfaceCalibrate();
+      //std::thread temp (&mq::skateInterfaceCalibrate,this);
+      //temp.join();
+      //signalPublish("Pi_Message_CalibrationComplete");
+
+    }
+    if (msg.find("Send_Calibration_Status") != std::string::npos)
+    {
+
+      signalPublish("Pi_Message_Cal_" + skateInterface.getCalibrationProgress());
+
+    }
     else if (msg.find("indicate") != std::string::npos)
     {
    //   buzz(0);
@@ -154,7 +181,7 @@ void mq::parseConfig(std::string name)
           }
           else
           {
-              signalPublish("Pi_Message_Error_Log_OutOfBounds");
+              signalPublish("Pi_Message_Error_Log_DoesNotExist");
 
           }
      }
@@ -166,6 +193,7 @@ void mq::parseConfig(std::string name)
         //endPublish();
 
     } 
+
      else if (msg.find("Send_Config_") != std::string::npos)
     {
    //   buzz(1);
@@ -187,7 +215,7 @@ void mq::parseConfig(std::string name)
 
 std::string mq::getPiConfig()
 {
-  std::string jsonOut = "{\"name\":\"" + s_c.mq_user+ "\", \"config\":\"" + s_c.configVersion + "\"}";
+  std::string jsonOut = "{\"name\":\"" + s_c.mq_user+ "\", \"config\":\"" + s_c.configVersion + "\",\"calibration\":\"" + std::to_string(skateInterface.getCalibrationStatus()) + "\"}";
   return jsonOut;
 
   /*
@@ -230,6 +258,14 @@ void mq::skateInterfacePoll()
     signalPublish("Pi_Message_PollEnd");
   }
     //std::cout << "Ending poll thread";
+
+}
+
+void mq::skateInterfaceCalibrate()
+{
+  skateInterface.setCalibrating(true);
+  skateInterface.calibrateBNO055();
+  skateInterface.setCalibrating(false);
 
 }
 int mq::multiThread()
@@ -318,15 +354,30 @@ int mq::mqPublish()
           amqp_channel_from.publish(exchangeName,routingkey,publish_message);
           amqp_channel_from.commitTransaction().onSuccess([]() {
             //std::cout << onSuccess << std::endl;  
-
           })
           .onError([](const char* message){
           std::cout << onFail << std::endl;         });
           mustPublish = false;
-          //asio_service.run();
-    }
 
-        //return 
+    }
+    if(skateInterface.isCalibrating())
+    {
+          amqp_channel_from.startTransaction();
+          amqp_channel_from.publish(exchangeName,routingkey,skateInterface.getCalibrationProgress());
+          amqp_channel_from.commitTransaction().onSuccess([]() {
+               })
+          .onError([](const char* message){
+          std::cout << onFail << std::endl;         });
+    }
+    if(skateInterface.getStreamStatus())
+    {
+          amqp_channel_from.startTransaction();
+          amqp_channel_from.publish(exchangeName,routingkey,skateInterface.getFrame());
+          amqp_channel_from.commitTransaction().onSuccess([]() {
+               })
+          .onError([](const char* message){
+          std::cout << onFail << std::endl;         });
+    }
 
 
   }
