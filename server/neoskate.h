@@ -12,7 +12,7 @@
 #include "sensors/mux_drv2605.h"
 #include "sensors/utility/imumaths.h"
 
-#define BNO055_SAMPLERATE_DELAY_MS (100)
+#define BNO055_SAMPLERATE_DELAY_MS (330)
 
 class neoskate {
 
@@ -69,7 +69,7 @@ public:
 	bool newPollData();
 	bool getStreamStatus();
 	std::string getCalibrationProgress();
-	void togglePollStream();
+	void setPollStream(bool);
 	std::string getPollFrame();
 	bool getCalibrationStatus();
 	void calibrateBNO055();

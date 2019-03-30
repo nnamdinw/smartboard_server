@@ -1,5 +1,5 @@
 #include "messaging/mq.h"
-#define BNO055_SAMPLERATE_DELAY_MS (100)
+//#define BNO055_SAMPLERATE_DELAY_MS (330)
 
 
 mq::skate_config parseConfig(std::string name)

@@ -133,10 +133,17 @@ void mq::parseConfig(std::string name)
       signalPublish("Pi_Message_StreamEnabled_" + skateInterface.getStreamStatus());
 
     }
-    if (msg.find("Toggle_Stream") != std::string::npos)
+    if (msg.find("Enable_Stream") != std::string::npos)
     {
+      std::cout << "\nstream start message received.. " << std::endl;
+      skateInterface.setPollStream(true);
 
-      skateInterface.togglePollStream();
+    }
+    if (msg.find("Disable_Stream") != std::string::npos)
+    {
+      std::cout << "\nstream stop message received.. " << std::endl;
+
+      skateInterface.setPollStream(false);
 
     }
     if (msg.find("Calibrate_IMU") != std::string::npos)
@@ -369,7 +376,7 @@ int mq::mqPublish()
           .onError([](const char* message){
           std::cout << onFail << std::endl;         });
     }
-    if(skateInterface.getStreamStatus())
+    if(skateInterface.getStreamStatus() && skateInterface.newPollData())
     {
           amqp_channel_from.startTransaction();
           amqp_channel_from.publish(exchangeName,routingkey,skateInterface.getFrame());

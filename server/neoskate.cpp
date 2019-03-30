@@ -364,6 +364,7 @@ while(1)
 		          output.push_back(temp);
               if(pollStream)
               {
+                std::cout << "Hey bois" << std::endl;
                 pollFrame = temp;
                 newFrame = true;
               }
@@ -453,9 +454,9 @@ bool neoskate::getStreamStatus()
 {
   return pollStream;
 }
-void neoskate::togglePollStream()
+void neoskate::setPollStream(bool in)
 {
-  pollStream = !pollStream;
+  pollStream = in;
 }
  int neoskate::getSzLogs()
  {

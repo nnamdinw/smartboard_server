@@ -21,7 +21,7 @@ std::mutex mtx;
 std::thread threads[2];
 
 /* Set the delay between fresh samples */
-#define BNO055_SAMPLERATE_DELAY_MS (100)
+#define BNO055_SAMPLERATE_DELAY_MS (330)
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
