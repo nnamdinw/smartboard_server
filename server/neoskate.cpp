@@ -85,11 +85,11 @@ void neoskate::calibrateBNO055()
 {
         //std::cout << "\nSensor offsets file not found.. Calibrating.\n";
 
-        sensors_event_t event;
-        bno.getEvent(&event);
-        if (!bno.isFullyCalibrated())
+       // sensors_event_t event;
+      //  bno.getEvent(&event);
+        while (!bno.isFullyCalibrated())
         {
-            bno.getEvent(&event);
+            //bno.getEvent(&event);
             /* Optional: Display calibration status */
             //printCalData();
             updateCalOutput();
@@ -97,7 +97,7 @@ void neoskate::calibrateBNO055()
             //std::cout << std::endl;
 
             /* Wait the specified delay before requesting new data */
-            delay(BNO055_SAMPLERATE_DELAY_MS);
+            delay(100);
         }
         //std::cout << "\nCalibration Complete.. Writing to disk at /config/bno05.conf\n";
         needsCalibration = false;
@@ -364,7 +364,7 @@ while(1)
 		          output.push_back(temp);
               if(pollStream)
               {
-                std::cout << "Hey bois" << std::endl;
+                //std::cout << "Hey bois" << std::endl;
                 pollFrame = temp;
                 newFrame = true;
               }

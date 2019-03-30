@@ -149,10 +149,10 @@ void mq::parseConfig(std::string name)
     if (msg.find("Calibrate_IMU") != std::string::npos)
     {
 
-      skateInterfaceCalibrate();
-      //std::thread temp (&mq::skateInterfaceCalibrate,this);
-      //temp.join();
-      //signalPublish("Pi_Message_CalibrationComplete");
+      //skateInterfaceCalibrate();
+      std::thread temp (&mq::skateInterfaceCalibrate,this);
+      temp.detach();
+      signalPublish("Pi_Message_CalibrationComplete");
 
     }
     if (msg.find("Send_Calibration_Status") != std::string::npos)
@@ -370,7 +370,7 @@ int mq::mqPublish()
     if(skateInterface.isCalibrating())
     {
           amqp_channel_from.startTransaction();
-          amqp_channel_from.publish(exchangeName,routingkey,skateInterface.getCalibrationProgress());
+          amqp_channel_from.publish(exchangeName,routingkey,"Pi_Message_CalibrationFrame_" + skateInterface.getCalibrationProgress());
           amqp_channel_from.commitTransaction().onSuccess([]() {
                })
           .onError([](const char* message){
@@ -379,7 +379,7 @@ int mq::mqPublish()
     if(skateInterface.getStreamStatus() && skateInterface.newPollData())
     {
           amqp_channel_from.startTransaction();
-          amqp_channel_from.publish(exchangeName,routingkey,skateInterface.getFrame());
+          amqp_channel_from.publish(exchangeName,routingkey,"Pi_Message_Poll_Frame_" + skateInterface.getFrame());
           amqp_channel_from.commitTransaction().onSuccess([]() {
                })
           .onError([](const char* message){
