@@ -94,7 +94,6 @@ public:
       std::string publish_message;
       void parseConfig(std::string);
       void messageParse(std::string);
-      //neoskate &skateInterface; //don't copy this or it'll invalida tea all our  cool i2c stuff
       neoskate skateInterface;
 
 

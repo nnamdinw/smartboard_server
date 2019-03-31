@@ -7,7 +7,7 @@ neoskate::neoskate()
   //bn055 calibratino is 11 entry struct of ints
   buzzTogg = 1;
   configNum = -1;
-  bno = Adafruit_BNO055();
+  bno = Adafruit_BNO055(55);
   std::vector<std::string> cal;
   std::string temp = "";
   hasLED = false;
@@ -17,12 +17,12 @@ neoskate::neoskate()
   newFrame = false;
   calibrating = false;
   pollFrame = "";
-  if(!bno.begin(Adafruit_BNO055::OPERATION_MODE_IMUPLUS))
+  if(!bno.begin())
   {
     /* There was a problem detecting the BNO055 ... check your connections */
     std::cout << "Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!";
   }
-  fileio.open(configDir + "bno05.conf", std::fstream::app | std::fstream::in);
+  fileio.open(configDir + "bno055.conf", std::fstream::app | std::fstream::in);
       if(fileio.is_open())
       {
           while(std::getline(fileio,temp))
@@ -54,7 +54,11 @@ neoskate::neoskate()
             savedConfig.accel_radius = (int16_t)std::stoi(cal.at(i));
             i++;
             savedConfig.mag_radius = (int16_t)std::stoi(cal.at(i));
-            bno.setSensorOffsets(savedConfig);
+            if(!bno.getSensorOffsets(savedConfig))
+            {
+              std::cout << "\nError setting calibration.";
+            }
+            delay(1500); //wait for the magic
             bno.setExtCrystalUse(true);
           }
           else
@@ -85,11 +89,11 @@ void neoskate::calibrateBNO055()
 {
         //std::cout << "\nSensor offsets file not found.. Calibrating.\n";
 
-       // sensors_event_t event;
+        sensors_event_t event;
       //  bno.getEvent(&event);
         while (!bno.isFullyCalibrated())
         {
-            //bno.getEvent(&event);
+            bno.getEvent(&event);
             /* Optional: Display calibration status */
             //printCalData();
             updateCalOutput();
@@ -99,10 +103,16 @@ void neoskate::calibrateBNO055()
             /* Wait the specified delay before requesting new data */
             delay(100);
         }
-        //std::cout << "\nCalibration Complete.. Writing to disk at /config/bno05.conf\n";
+        std::cout << "\nCalibration Complete.. Writing to disk at " + configDir + "/bno055.conf\n";
         needsCalibration = false;
         adafruit_bno055_offsets_t newCalib;
-        bno.getSensorOffsets(newCalib);
+        if(!bno.getSensorOffsets(newCalib))
+        {
+          std::cout << "\nError setting calibration.";
+        }
+        delay(1500);
+        bno.setExtCrystalUse(true);
+
         saveCalData(newCalib);
 
 }
@@ -215,7 +225,7 @@ void neoskate::saveCalData(adafruit_bno055_offsets_t &in)
   out += std::to_string(in.accel_radius) + '\n'; 
   out += std::to_string(in.mag_radius);
   
-  fileio.open(configDir + "bno05.conf", std::fstream::out);
+  fileio.open(configDir + "bno055.conf", std::fstream::out);
     
   fileio << out;
         
@@ -245,6 +255,7 @@ void neoskate::updateCalOutput()
      output += "\nAccel: " + std::to_string((accel/3.0) * 100) + "%";
      output += "\nMag: " + std::to_string((mag/3.0) * 100) + "%";
      calibOutput = output;
+     output.clear();
 }
 
 std::string neoskate::getCalibrationProgress()
@@ -360,25 +371,32 @@ while(1)
 		          bno.getEvent(&event);
               sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
 		          //temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
-              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}\n";
-		          output.push_back(temp);
+              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}";
               if(pollStream)
               {
                 //std::cout << "Hey bois" << std::endl;
                 pollFrame = temp;
                 newFrame = true;
               }
+              else
+              {
+                output.push_back(temp);
+              }
 		          delay(BNO055_SAMPLERATE_DELAY_MS);
 		   		  break;
           case 2:
               quat = bno.getQuat();
               sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
-              temp = "{\"qW\":\"" + std::to_string(quat.w()) + "\", \"qX\":\"" + std::to_string(quat.x()) + "\",\"qY\":\"" +std::to_string(quat.y()) + "\",\"qZ\":\"" + std::to_string(quat.z()) + "\",\"time\":\"" +std::to_string(sampleTime.count()) + "\"}\n";
-              output.push_back(temp);
+              temp = "{\"qW\":\"" + std::to_string(quat.w()) + "\", \"qX\":\"" + std::to_string(quat.x()) + "\",\"qY\":\"" +std::to_string(quat.y()) + "\",\"qZ\":\"" + std::to_string(quat.z()) + "\",\"time\":\"" +std::to_string(sampleTime.count()) + "\"}";
+              //output.push_back(temp);
               if(pollStream)
               {
                 pollFrame = temp;
                 newFrame = true;
+              }
+              else
+              {
+                output.push_back(temp);
               }
               delay(BNO055_SAMPLERATE_DELAY_MS);
               break;
@@ -387,12 +405,16 @@ while(1)
               accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
               sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
               //temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
-              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"aX\":\"" +std::to_string(accel.x()) + "\", \"aY\":\"" + std::to_string(accel.y()) + "\",\"aZ\":\"" +std::to_string(accel.z()) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}\n";
-              output.push_back(temp);
+              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"aX\":\"" +std::to_string(accel.x()) + "\", \"aY\":\"" + std::to_string(accel.y()) + "\",\"aZ\":\"" +std::to_string(accel.z()) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}";
+              //output.push_back(temp);
               if(pollStream)
               {
                 pollFrame = temp;
                 newFrame = true;
+              }
+              else
+              {
+                output.push_back(temp);
               }
               delay(BNO055_SAMPLERATE_DELAY_MS);
               break;
@@ -400,12 +422,16 @@ while(1)
               quat = bno.getQuat();
               accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
               sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
-              temp = "{\"qW\":\"" + std::to_string(quat.w()) + "\", \"qX\":\"" + std::to_string(quat.x()) + "\",\"qY\":\"" +std::to_string(quat.y()) + "\",\"qZ\":\"" + std::to_string(quat.z()) + "\",\"aX\":\"" +std::to_string(accel.x()) + "\", \"aY\":\"" + std::to_string(accel.y()) + "\",\"aZ\":\"" +std::to_string(accel.z()) + "\",\"time\":\"" +std::to_string(sampleTime.count()) + "\"}\n";
-              output.push_back(temp);
+              temp = "{\"qW\":\"" + std::to_string(quat.w()) + "\", \"qX\":\"" + std::to_string(quat.x()) + "\",\"qY\":\"" +std::to_string(quat.y()) + "\",\"qZ\":\"" + std::to_string(quat.z()) + "\",\"aX\":\"" +std::to_string(accel.x()) + "\", \"aY\":\"" + std::to_string(accel.y()) + "\",\"aZ\":\"" +std::to_string(accel.z()) + "\",\"time\":\"" +std::to_string(sampleTime.count()) + "\"}";
+              //output.push_back(temp);
               if(pollStream)
               {
                 pollFrame = temp;
                 newFrame = true;
+              }
+              else
+              {
+                output.push_back(temp);
               }
               delay(BNO055_SAMPLERATE_DELAY_MS);
               break;

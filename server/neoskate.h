@@ -40,6 +40,7 @@ private:
 	std::atomic<int> configNum;
 	std::vector<std::string> logs;
 	std::string calibOutput,pollFrame;
+	adafruit_bno055_offsets_t currentCalib;
 
 public:
 
