@@ -70,6 +70,8 @@ public:
         {
           skateInterface.enableHaptics();
         }
+        amqp_connection_string = "amqp://" + s_c.mq_user + ":" + s_c.mq_password + "@" + s_c.mq_server + "/" + s_c.vhostName;
+
         //onSuccess = "ok";
         //onFail = "error";
 

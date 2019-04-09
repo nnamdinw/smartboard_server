@@ -51,7 +51,7 @@ mq::skate_config parseConfig(std::string name)
         //std::istringstream(s_c.heartbeat) >> heartbeatTick;
         //amqp_connection_string = "amqp://" + s_c.mq_user + ":" + s_c.mq_password + "@" + s_c.mq_server + "/" + s_c.vhostName;
 
-        //std::cout << "\nConfig Parse Succesfull" << std::endl;
+        std::cout << "\nConfig Parse Succesfull" << std::endl;
       }
       else
       {
@@ -90,7 +90,8 @@ int main()
   //bf = buzz;
   mq messageq(parseConfig("/home/pi/config.conf"),mqservice,handler);
 //  mq messageq(parseConfig("alphaconfig.conf"),mqservice,handler,hardwareInterface);
-//  std::cout << "\nSpawning rabbitmq listener...\n";
+  messageq.printMqConfig();
+  std::cout << "\nSpawning rabbitmq handler...\n";
   messageq.multiThread();
   messageq.endThreads();
   //      threads[1] = std::thread(sensorPoll,configParam,messageFlag);

@@ -2,6 +2,8 @@
 
 const std::string neoskate::logDir = "/home/pi/Skate/logs/";
 const std::string neoskate::configDir = "/home/pi/Skate/config/";
+const std::string configLables[] = {"Euler","Quaternion","Euler&Accelerometer","Quaternion&Accelerometer"};
+
 neoskate::neoskate()
 { 
   //bn055 calibratino is 11 entry struct of ints
@@ -319,7 +321,9 @@ int neoskate::poll()
   	//higher order methods will periodically check and post errors to rabbitmq or something
   	//return -1;
   }
-  unsigned int frameTime;
+  char* timeFormat = nullptr;
+  unsigned int formatsize = 80;
+  long frameTime;
   std::string temp = "";
   sensors_event_t event;
   std::vector<std::string> output;
@@ -329,6 +333,8 @@ int neoskate::poll()
   std::chrono::milliseconds sampleTime;
   imu::Quaternion quat;
   imu::Vector<3> accel;
+  time_t rawtime;
+  struct tm * timeinfo;
   //buzz();
   //std::cout << "\nHi";
 
@@ -444,8 +450,12 @@ while(1)
 
       if(postPoll)
       {
-        frameTime = time(NULL);
-        std::string logName = std::to_string(frameTime) + "_configType_"+ std::to_string(configNum) +".log";
+        time (&rawtime);
+        timeinfo = localtime (&rawtime);
+        timeFormat = new char[formatsize];
+        strftime(timeFormat,formatsize,"%I:%M%p",timeinfo);
+        //std::string logName = std::to_string(frameTime) + "_configType_"+ std::to_string(configNum) +".log";
+        std::string logName = timeFormat + configLables[configNum] +".log";
         fileio.open(logDir + logName, std::fstream::out);
         for(std::vector<std::string>::iterator it = output.begin();it != output.end();it++)
         {
@@ -462,6 +472,9 @@ while(1)
         {
           setLED(1,FALSE);
         }
+
+        delete timeFormat;
+        timeFormat = nullptr;
 
       }
 

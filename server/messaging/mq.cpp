@@ -3,6 +3,15 @@
 const std::string mq::onSuccess = "publish_ok";
 const std::string mq::onFail = "publish_error";
 
+void mq::printMqConfig()
+{
+  std::cout << "- Connection String: " << amqp_connection_string << std::endl;
+  std::cout << "- Routing Key: " << routingkey << std::endl;
+  std::cout << "- Queue Name to: " << queueNameTo << std::endl;
+  std::cout << "- Queue Name from: " << queueNameFrom << std::endl;
+  return;
+}
+
 void mq::parseConfig(std::string name)
 {
 	//checks immediate dir for config file
