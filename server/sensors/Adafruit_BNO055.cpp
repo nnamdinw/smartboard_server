@@ -29,7 +29,7 @@
 
 #include <limits.h>
 #include <math.h>
-
+#include <cstdio> 
 #include "Adafruit_BNO055.h"
 
 /*!
@@ -683,8 +683,16 @@ bool Adafruit_BNO055::isFullyCalibrated() {
  */
 bool Adafruit_BNO055::write8(adafruit_bno055_reg_t reg, unsigned char value) {
 
-  wiringPiI2CWriteReg8(getFd(),reg,value);
-  return true;
+  if(wiringPiI2CWriteReg8(getFd(),reg,value) >= 0)
+  {
+
+    return true;
+  }
+  else
+  {
+    printf("\tError writing 8 bit bno055\n");
+    return false;
+  }
 }
 
 /*!

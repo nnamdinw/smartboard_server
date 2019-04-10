@@ -30,7 +30,7 @@ public:
     int mqPublish();
     //void exec(int);
     int multiThread();
-    void endThreads();
+    void waitThreads();
     std::string getPiConfig();
     //~mq();
     mq(mq::skate_config configIn,boost::asio::io_service& ioserv_, AMQP::LibBoostAsioHandler& boosthandler/*,neoskate& nskate*/) :

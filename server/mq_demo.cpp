@@ -84,7 +84,7 @@ int main()
 //  neoskate hardwareInterface;
 
   //std::function<void(int)> bf = buzz;
-  boost::asio::io_service mqservice(2);
+  boost::asio::io_service mqservice(4);
   AMQP::LibBoostAsioHandler handler(mqservice);
 
   //bf = buzz;
@@ -93,7 +93,7 @@ int main()
   messageq.printMqConfig();
   std::cout << "\nSpawning rabbitmq handler...\n";
   messageq.multiThread();
-  messageq.endThreads();
+  //messageq.endThreads();
   //      threads[1] = std::thread(sensorPoll,configParam,messageFlag);
 
 

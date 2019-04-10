@@ -76,6 +76,7 @@ public:
 	void calibrateBNO055();
 	void enableLED();
 	void setErrorState(int);
+	int getErrorState();
 	void indicate();
 	void setLED(int,bool);
 	void initLED(int,int);

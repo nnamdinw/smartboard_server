@@ -35,33 +35,39 @@ neoskate::neoskate()
           {
             int i = 0;
             adafruit_bno055_offsets_t savedConfig;
-            savedConfig.accel_offset_x = (int16_t)std::stoi(cal.at(i));
+            savedConfig.accel_offset_x = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.accel_offset_y = (int16_t)std::stoi(cal.at(i));
+            savedConfig.accel_offset_y = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.accel_offset_z = (int16_t)std::stoi(cal.at(i));
+            savedConfig.accel_offset_z = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.mag_offset_x = (int16_t)std::stoi(cal.at(i));
+            savedConfig.mag_offset_x = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.mag_offset_y = (int16_t)std::stoi(cal.at(i));
+            savedConfig.mag_offset_y = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.mag_offset_z = (int16_t)std::stoi(cal.at(i));
+            savedConfig.mag_offset_z = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.gyro_offset_x = (int16_t)std::stoi(cal.at(i));
+            savedConfig.gyro_offset_x = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.gyro_offset_y = (int16_t)std::stoi(cal.at(i));
+            savedConfig.gyro_offset_y = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.gyro_offset_z = (int16_t)std::stoi(cal.at(i));
+            savedConfig.gyro_offset_z = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.accel_radius = (int16_t)std::stoi(cal.at(i));
+            savedConfig.accel_radius = (int8_t)std::stoi(cal.at(i));
             i++;
-            savedConfig.mag_radius = (int16_t)std::stoi(cal.at(i));
+            savedConfig.mag_radius = (int8_t)std::stoi(cal.at(i));
+            bno.setSensorOffsets(savedConfig);
             if(!bno.getSensorOffsets(savedConfig))
             {
-              std::cout << "\nError setting calibration.";
+              std::cout << "\nError setting calibration." << std::endl;
+                errorState = -1;
             }
-            delay(1500); //wait for the magic
-            bno.setExtCrystalUse(true);
+            else
+            {
+              delay(1500); //wait for the magic
+              bno.setExtCrystalUse(true);
+            }
+
           }
           else
           {
@@ -70,6 +76,8 @@ neoskate::neoskate()
           }
 
         fileio.close();
+        errorState = 0;
+
       }
       
       if(cal.size() != 11)
@@ -80,7 +88,6 @@ neoskate::neoskate()
   //printCalData();
   flag = false;
   newPoll = false;
-  errorState = 0;
 }
 std::string neoskate::getFrame()
 {
@@ -97,7 +104,7 @@ void neoskate::calibrateBNO055()
         {
             bno.getEvent(&event);
             /* Optional: Display calibration status */
-            //printCalData();
+            printCalData();
             updateCalOutput();
             /* New line for the next sample */
             //std::cout << std::endl;
@@ -132,7 +139,10 @@ bool neoskate::isCalibrating()
 {
   return calibrating;
 }
-
+int neoskate::getErrorState()
+{
+  return errorState;
+}
 void neoskate::setCalibrating(bool a)
 {
   calibrating = a;
@@ -370,7 +380,7 @@ while(1)
 
       }
 
-			switch(configNum)    
+		   switch(configNum)    
 		    {
 
 		      case 1:
@@ -478,9 +488,6 @@ while(1)
 
       }
 
-
-    
-
 	}
     return 1;
 
@@ -508,10 +515,10 @@ std::string neoskate::fetchLog(int index)
         std::string contents = "";
         fileio.open(logDir + logs.at(index),std::fstream::in | std::fstream::app);
         while(std::getline(fileio,contents))
-          {
-            //fileio << out;
-            out += contents;
-          }
+        {
+          //fileio << out;
+          out += contents;
+        }
        
         //std::cout << out;
         fileio << out;
@@ -541,4 +548,3 @@ void neoskate::buzz()
   hap.go();
   delay(100);
 }
-

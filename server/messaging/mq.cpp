@@ -9,6 +9,7 @@ void mq::printMqConfig()
   std::cout << "- Routing Key: " << routingkey << std::endl;
   std::cout << "- Queue Name to: " << queueNameTo << std::endl;
   std::cout << "- Queue Name from: " << queueNameFrom << std::endl;
+  std::cout << "- Error Level: " << skateInterface.getErrorState();
   return;
 }
 
@@ -219,7 +220,7 @@ void mq::parseConfig(std::string name)
 
     else if(msg.find("Terminate") != std::string::npos)
     { 
-      endThreads();
+      //endThreads();
       exit(1);
     }
 
@@ -273,7 +274,7 @@ void mq::skateInterfacePoll()
   {
     signalPublish("Pi_Message_PollEnd");
   }
-    //std::cout << "Ending poll thread";
+    std::cout << "Ending poll thread";
 
 }
 
@@ -286,25 +287,26 @@ void mq::skateInterfaceCalibrate()
 }
 int mq::multiThread()
 {
- // std::thread t1(&mq::mqConsume,this);
-  //std::thread t2(&mq::mqPublish,this);
-   t3 = std::thread(&mq::skateInterfacePoll,this);
-   t1 = std::thread(&mq::mqConsume,this);
-   t2 = std::thread(&mq::mqPublish,this);
-   
-  //t2.join();
-  //t1.join();
-  
- // t3.join();
+
+
+  t1 = std::thread(&mq::mqConsume,this);
+
+  t2 = std::thread(&mq::mqPublish,this);
+
+  t3 = std::thread(&mq::skateInterfacePoll,this);
+
+  t2.detach();
+  t3.detach();
+  t1.join();
+
+
 }
 int mq::mqConsume()
 {
   auto startCb = [&](const std::string &consumertag) 
   {
-
-    //std::cout << "consume operation started" << std::endl;  
+          std::cout << "consume operation started" << std::endl;  
           skateInterface.setErrorState(1);
-
   };
 
 // callback function that is called when the consume operation failed
@@ -318,14 +320,11 @@ int mq::mqConsume()
 // callback operation when a message was received
   auto messageCb = [&](const AMQP::Message &message, uint64_t deliveryTag, bool redelivered) 
   {
-
-      //std::cout << "message received" << ": " << message.body() << std::endl;
+      std::cout << "message received" << ": " << message.body() << std::endl;
           // acknowledge the message
       amqp_channel_to.ack(deliveryTag);
-
      // std::cout << (std::string)message.body();
             //Parse Message
-
       messageParse(std::string(message.body(),message.bodySize()));
   };
 
@@ -336,28 +335,13 @@ int mq::mqConsume()
      return asio_service.run();
 }
 
-void mq::endThreads()
+void mq::waitThreads()
 {
 
 
 
-  if(t1.joinable())
-  {
-    t1.join();
-  }
-
-  if(t2.joinable())
-  {
-    t2.join();
-  }
-
-  if(t3.joinable())
-  {
-    t3.join();
-  }
-
-  amqp_channel_to.close();
-  amqp_channel_from.close();
+ // amqp_channel_to.close();
+  //amqp_channel_from.close();
 
 }
 int mq::mqPublish()
@@ -369,12 +353,11 @@ int mq::mqPublish()
           amqp_channel_from.startTransaction();
           amqp_channel_from.publish(exchangeName,routingkey,publish_message);
           amqp_channel_from.commitTransaction().onSuccess([]() {
-            //std::cout << onSuccess << std::endl;  
+            std::cout << onSuccess << std::endl;  
           })
           .onError([](const char* message){
           std::cout << onFail << std::endl;         });
           mustPublish = false;
-
     }
     if(skateInterface.isCalibrating())
     {
