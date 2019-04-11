@@ -145,13 +145,13 @@ void mq::parseConfig(std::string name)
     }
     if (msg.find("Enable_Stream") != std::string::npos)
     {
-      std::cout << "\nstream start message received.. " << std::endl;
+      //std::cout << "\nstream start message received.. " << std::endl;
       skateInterface.setPollStream(true);
 
     }
     if (msg.find("Disable_Stream") != std::string::npos)
     {
-      std::cout << "\nstream stop message received.. " << std::endl;
+      //std::cout << "\nstream stop message received.. " << std::endl;
 
       skateInterface.setPollStream(false);
 
@@ -320,7 +320,7 @@ int mq::mqConsume()
 // callback operation when a message was received
   auto messageCb = [&](const AMQP::Message &message, uint64_t deliveryTag, bool redelivered) 
   {
-      std::cout << "message received" << ": " << message.body() << std::endl;
+      //std::cout << "message received" << ": " << message.body() << std::endl;
           // acknowledge the message
       amqp_channel_to.ack(deliveryTag);
      // std::cout << (std::string)message.body();
@@ -346,14 +346,17 @@ void mq::waitThreads()
 }
 int mq::mqPublish()
 {
+  bool ok = true;
+  publish_message = "Pi_Hello";
   while(1)
   {
-    if(mustPublish)
+    if(mustPublish || ok)
     {     
+          ok = false;
           amqp_channel_from.startTransaction();
           amqp_channel_from.publish(exchangeName,routingkey,publish_message);
           amqp_channel_from.commitTransaction().onSuccess([]() {
-            std::cout << onSuccess << std::endl;  
+            //std::cout << onSuccess << std::endl;  
           })
           .onError([](const char* message){
           std::cout << onFail << std::endl;         });

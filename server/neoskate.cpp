@@ -19,6 +19,7 @@ neoskate::neoskate()
   newFrame = false;
   calibrating = false;
   pollFrame = "";
+  currentCalib = {};
   if(!bno.begin())
   {
     /* There was a problem detecting the BNO055 ... check your connections */
@@ -57,6 +58,7 @@ neoskate::neoskate()
             i++;
             savedConfig.mag_radius = (int8_t)std::stoi(cal.at(i));
             bno.setSensorOffsets(savedConfig);
+            
             if(!bno.getSensorOffsets(savedConfig))
             {
               std::cout << "\nError setting calibration." << std::endl;
@@ -112,17 +114,17 @@ void neoskate::calibrateBNO055()
             /* Wait the specified delay before requesting new data */
             delay(100);
         }
-        std::cout << "\nCalibration Complete.. Writing to disk at " + configDir + "/bno055.conf\n";
+        std::cout << "\nCalibration Complete.. Writing to disk at " + configDir + "bno055.conf\n";
         needsCalibration = false;
-        adafruit_bno055_offsets_t newCalib;
-        if(!bno.getSensorOffsets(newCalib))
+        setCalibrating(false);
+        if(!bno.getSensorOffsets(currentCalib))
         {
           std::cout << "\nError setting calibration.";
         }
         delay(1500);
         bno.setExtCrystalUse(true);
 
-        saveCalData(newCalib);
+        saveCalData(currentCalib);
 
 }
 bool neoskate::getCalibrationStatus()
@@ -260,14 +262,14 @@ void neoskate::updateCalOutput()
     uint8_t system, gyro, accel, mag;
     system = gyro = accel = mag = 0;
     bno.getCalibration(&system, &gyro, &accel, &mag);
-    std::string output = "";
+    //std::string output = "";
 
-     output =  "\nSystem: " +  std::to_string( (system/3.0) * 100) + "%";
-     output += "\nGyro : " + std::to_string((gyro/3.0) * 100) + "%";
-     output += "\nAccel: " + std::to_string((accel/3.0) * 100) + "%";
-     output += "\nMag: " + std::to_string((mag/3.0) * 100) + "%";
-     calibOutput = output;
-     output.clear();
+     calibOutput =  "\nSystem: " +  std::to_string( (system/3.0) * 100) + "%";
+     calibOutput += "\nGyro : " + std::to_string((gyro/3.0) * 100) + "%";
+     calibOutput += "\nAccel: " + std::to_string((accel/3.0) * 100) + "%";
+     calibOutput += "\nMag: " + std::to_string((mag/3.0) * 100) + "%";
+      //= output;
+     //output.clear();
 }
 
 std::string neoskate::getCalibrationProgress()
@@ -464,8 +466,8 @@ while(1)
         timeinfo = localtime (&rawtime);
         timeFormat = new char[formatsize];
         strftime(timeFormat,formatsize,"%I:%M%p",timeinfo);
-        //std::string logName = std::to_string(frameTime) + "_configType_"+ std::to_string(configNum) +".log";
-        std::string logName = timeFormat + configLables[configNum] +".log";
+        std::string logName = std::to_string(frameTime) + "_configType_"+ std::to_string(configNum) +".log";
+        //std::string logName = timeFormat + configLables[configNum] +".log";
         fileio.open(logDir + logName, std::fstream::out);
         for(std::vector<std::string>::iterator it = output.begin();it != output.end();it++)
         {
