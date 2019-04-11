@@ -20,6 +20,7 @@ public:
       std::string vhostName;
       int heartbeat;
     };
+
     void skateInterfacePoll();
     void skateInterfaceCalibrate();
     void signalPublish(std::string);
@@ -76,6 +77,7 @@ public:
 
 
     private:
+      void closeChannels();
       std::thread t1,t2,t3; //send, rec, poll & file io
       std::string exchangeName,queueNameTo,queueNameFrom,routingkey,amqp_connection_string;
       static const std::string onSuccess;

@@ -89,7 +89,11 @@ void mq::parseConfig(std::string name)
   return;
 
 }
-
+void mq::closeChannels()
+{
+   amqp_channel_to.close();
+  amqp_channel_from.close();
+}
  void mq::messageParse(std::string msg)
  {
 
@@ -220,7 +224,7 @@ void mq::parseConfig(std::string name)
 
     else if(msg.find("Terminate") != std::string::npos)
     { 
-      //endThreads();
+      closeChannels();
       exit(1);
     }
 

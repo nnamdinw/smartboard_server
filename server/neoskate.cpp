@@ -466,8 +466,8 @@ while(1)
         timeinfo = localtime (&rawtime);
         timeFormat = new char[formatsize];
         strftime(timeFormat,formatsize,"%I:%M%p",timeinfo);
-        std::string logName = std::to_string(frameTime) + "_configType_"+ std::to_string(configNum) +".log";
-        //std::string logName = timeFormat + configLables[configNum] +".log";
+        //std::string logName = std::to_string(frameTime) + "_configType_"+ std::to_string(configNum) +".log";
+        std::string logName = timeFormat + configLables[configNum + 1] +".log";
         fileio.open(logDir + logName, std::fstream::out);
         for(std::vector<std::string>::iterator it = output.begin();it != output.end();it++)
         {
