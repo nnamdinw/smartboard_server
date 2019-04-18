@@ -2,6 +2,7 @@
 
 const std::string mq::onSuccess = "publish_ok";
 const std::string mq::onFail = "publish_error";
+//const enum commands = {}
 
 void mq::printMqConfig()
 {
@@ -100,6 +101,7 @@ void mq::closeChannels()
 	  size_t pos = 0;
 	  int param = 0;
 	  bool* messageFlag = NULL;
+
   /*
       Pi_Control,Start_Poll/Stop_Poll/No_Poll,Config Preset,[Optional Input]
   */

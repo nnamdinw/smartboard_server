@@ -77,6 +77,7 @@ public:
 
 
     private:
+      //static const enum commands;
       void closeChannels();
       std::thread t1,t2,t3; //send, rec, poll & file io
       std::string exchangeName,queueNameTo,queueNameFrom,routingkey,amqp_connection_string;

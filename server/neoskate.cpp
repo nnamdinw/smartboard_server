@@ -389,10 +389,10 @@ while(1)
 		          bno.getEvent(&event);
               sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
 		          //temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
-              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}";
+              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"z\":\"" +std::to_string(event.orientation.z) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}";
               if(pollStream)
               {
-                //std::cout << "Hey bois" << std::endl;
+                //std::cout << "Frame" << std::endl;
                 pollFrame = temp;
                 newFrame = true;
               }
@@ -423,7 +423,7 @@ while(1)
               accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
               sampleTime = std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now() - start);
               //temp = "(" + std::to_string(event.orientation.x) + "," + std::to_string(event.orientation.y) + "," + std::to_string(event.orientation.z) + ")";
-              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"Z\":\"" +std::to_string(event.orientation.z) + "\",\"aX\":\"" +std::to_string(accel.x()) + "\", \"aY\":\"" + std::to_string(accel.y()) + "\",\"aZ\":\"" +std::to_string(accel.z()) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}";
+              temp = "{\"x\":\"" +std::to_string(event.orientation.x) + "\", \"y\":\"" + std::to_string(event.orientation.y) + "\",\"z\":\"" +std::to_string(event.orientation.z) + "\",\"aX\":\"" +std::to_string(accel.x()) + "\", \"aY\":\"" + std::to_string(accel.y()) + "\",\"aZ\":\"" +std::to_string(accel.z()) + "\",\"time\":\"" + std::to_string(sampleTime.count()) + "\"}";
               //output.push_back(temp);
               if(pollStream)
               {

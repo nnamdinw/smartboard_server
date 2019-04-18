@@ -367,15 +367,15 @@ imu::Vector<3> Adafruit_BNO055::getVector(adafruit_vector_type_t vector_type) {
   uint8_t buffer[6];
   memset(buffer, 0, 6);
 
-  int16_t x, y, z;
+  uint8_t x, y, z;
   x = y = z = 0;
 
   /* Read vector data (6 unsigned chars) */
   readLen((adafruit_bno055_reg_t)vector_type, buffer, 6);
 
-  x = ((int16_t)buffer[0]) | (((int16_t)buffer[1]) << 8);
-  y = ((int16_t)buffer[2]) | (((int16_t)buffer[3]) << 8);
-  z = ((int16_t)buffer[4]) | (((int16_t)buffer[5]) << 8);
+  x = ((uint8_t)buffer[0]) | (((uint8_t)buffer[1]) << 8);
+  y = ((uint8_t)buffer[2]) | (((uint8_t)buffer[3]) << 8);
+  z = ((uint8_t)buffer[4]) | (((uint8_t)buffer[5]) << 8);
 
   /*!
    * Convert the value to an appropriate range (section 3.6.4)
@@ -718,7 +718,7 @@ bool Adafruit_BNO055::readLen(adafruit_bno055_reg_t reg, unsigned char *buffer, 
 
   for(uint8_t i = 0; i < len;i++)
   {
-    buffer[i] = wiringPiI2CReadReg8(getFd(),reg);
+    buffer[i] = wiringPiI2CReadReg8(getFd(),reg + i);
   }
 
   /* ToDo: Check for errors! */
